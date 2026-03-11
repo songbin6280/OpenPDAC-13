@@ -140,6 +140,13 @@ void Foam::solvers::OpenPDAC::energyPredictor()
 
 void Foam::solvers::OpenPDAC::thermophysicalPredictor()
 {
+    // If there are no thermal phases, there is no energy equation to solve.
+    // Skip this entire step.
+    if (fluid.thermalPhases().empty())
+    {
+        return;
+    }
+
     // Bypass logic for "ghost" iterations in the PIMPLE loop
     if (forceFinalPimpleIter_ && !pimple.finalIter())
     {
@@ -184,8 +191,6 @@ void Foam::solvers::OpenPDAC::thermophysicalPredictor()
 
                 heNew = pos0(phase - phase.residualAlpha()) * heNew
                       + neg(phase - phase.residualAlpha()) * heTcont;
-
-                fluid_.correctThermo();
             }
         }
 
