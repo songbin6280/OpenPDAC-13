@@ -1,0 +1,36 @@
+name: Generate Test Coverage Report of OpenPDAC
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    tags:
+      - '[0-9]+.*'
+  workflow_dispatch:
+
+
+jobs:
+
+  test-coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo sh -c "wget -O - https://dl.openfoam.org/gpg.key | apt-key add -"
+          sudo add-apt-repository http://dl.openfoam.org/ubuntu
+          sudo apt-get update
+          sudo apt-get -y install openfoam13 wget lcov genhtml
+
+      - name: Install Miniconda and Create Environment Manually
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          activate-environment: OpenPDACconda
+          environment-file: environment.yml
+          auto-activate: true
+
+    
