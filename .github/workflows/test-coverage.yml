@@ -15,6 +15,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Get number of CPU cores
+        uses: SimenB/github-actions-cpu-cores@v2
+        id: cpu-cores
+        
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -33,4 +37,45 @@ jobs:
           environment-file: environment.yml
           auto-activate: true
 
-    
+      
+      - name: Build OpenPDAC with Coverage Flags
+        run: |
+          echo "NUM_CORES=${{ steps.cpu-cores.outputs.count }}" >> $GITHUB_ENV
+          bash -ic "
+            set +m
+
+            source /opt/openfoam13/etc/bashrc
+            
+            find . -name 'options' -type f -exec sed -i '\$a EXE_INC += -O0 --coverage\nLIB_LIBS += --coverage\nEXE_LIBS += --coverage' {} \;
+            
+            echo "Compiling OpenPDAC solver with coverage flags..."
+            cd applications/OpenPDAC
+            ./Allwmake -j $NUM_CORES
+            cd ../../applications/utilities/topoGrid
+            wmake
+          "
+
+      - name: Run the test cases with coverage
+        run: |
+          bash -ic '
+            set +m 
+            
+            source /opt/openfoam13/etc/bashrc
+            
+            echo "Running test cases with coverage..."
+            cd run
+            chmod +x ./run-all-tests.sh
+            ./run-all-tests.sh
+          '
+
+      - name: Generate and Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage_report.tar.gz
+        run: |
+          # Generate coverage report
+          lcov --capture --directory . --output-file coverage.info
+          lcov --remove coverage.info '/usr/*' --output-file coverage.info
+          genhtml coverage.info --output-directory coverage_report
+          tar -czf coverage_report.tar.gz coverage_report
