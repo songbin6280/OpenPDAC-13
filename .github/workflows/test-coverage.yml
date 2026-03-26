@@ -27,7 +27,7 @@ jobs:
           sudo sh -c "wget -O - https://dl.openfoam.org/gpg.key | apt-key add -"
           sudo add-apt-repository http://dl.openfoam.org/ubuntu
           sudo apt-get update
-          sudo apt-get -y install openfoam13 wget lcov genhtml
+          sudo apt-get -y install openfoam13 wget lcov
 
       - name: Install Miniconda and Create Environment Manually
         uses: conda-incubator/setup-miniconda@v3
