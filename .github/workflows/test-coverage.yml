@@ -1,0 +1,81 @@
+name: Generate Test Coverage Report of OpenPDAC
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    tags:
+      - '[0-9]+.*'
+
+jobs:
+  test-coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo sh -c "wget -O - https://dl.openfoam.org/gpg.key | apt-key add -"
+          sudo add-apt-repository http://dl.openfoam.org/ubuntu
+          sudo apt-get update
+          sudo apt-get -y install openfoam13 wget lcov
+          
+      - name: Install Miniconda and Create Environment Manually
+        run: |
+          # Scarica e installa Miniconda
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+          bash miniconda.sh -b -p $HOME/miniconda
+          
+          # Inizializza Conda per la shell e crea l'ambiente
+          source $HOME/miniconda/bin/activate
+          conda init
+          conda env create -f environment.yml
+
+      - name: Compile Solver and Utilities
+        run: |
+          bash -ic '
+            set +m
+            
+            # Il .bashrc è stato modificato da "conda init"
+            # Quindi l''attivazione funzionerà
+            conda activate OpenPDACconda
+            
+            # Ora carica OpenFOAM
+            source /opt/openfoam13/etc/bashrc
+
+            # Change Make/options to add coverage flags
+            find . -name "options" -type f -exec sed -i "\$a EXE_INC += -O0 --coverage\nLIB_LIBS += --coverage\nEXE_LIBS += --coverage" {} \;
+            
+            # Compila
+            echo "Compiling OpenPDAC with coverage flags..."
+            cd applications/OpenPDAC
+            ./Allwmake
+            cd ../../applications/utilities/topoGrid
+            wmake
+          '
+
+      - name: Run the test cases
+        run: |
+          bash -ic '
+            set +m 
+            conda activate OpenPDACconda
+            source /opt/openfoam13/etc/bashrc
+            
+            cd run
+            chmod +x ./run-all-tests.sh
+            ./run-all-tests.sh
+            cd ..
+      
+            # Generate coverage report
+            lcov --capture --directory . --output-file coverage.info
+            lcov --remove coverage.info "/usr/*" --output-file coverage.info
+            genhtml coverage.info --output-directory coverage_report
+          '
+
+      - name: Generate and Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenPDAC-Coverage-Report
+          path: coverage_report/
