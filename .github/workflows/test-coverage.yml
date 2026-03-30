@@ -70,8 +70,8 @@ jobs:
       
             # Generate coverage report
             lcov --capture --directory . --output-file coverage.info
-            lcov --remove coverage.info "/usr/*" --output-file coverage.info
-            genhtml coverage.info --output-directory coverage_report
+            lcov --remove coverage.info "/opt/openfoam*" "/usr/*" "*/lnInclude/*" --output-file coverage_clean.info
+            genhtml coverage_clean.info --output-directory coverage_report
           '
 
       - name: Generate and Upload Coverage Report
