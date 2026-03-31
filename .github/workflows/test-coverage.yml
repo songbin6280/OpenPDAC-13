@@ -10,6 +10,12 @@ on:
 jobs:
   test-coverage:
     runs-on: ubuntu-latest
+    permissions:
+      packages: read
+      artifact-metadata: write
+      # only required for workflows in private repositories
+      actions: read
+      contents: read
 
     steps:
       - name: Checkout repository
