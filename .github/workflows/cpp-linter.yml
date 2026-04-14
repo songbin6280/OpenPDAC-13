@@ -6,10 +6,13 @@ on:
   push:
     tags:
       - '[0-9]+.*'
-
 jobs:
-  build-and-test:
+  Cpp-linter:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read 
+      pull-requests: read
 
     steps:
       - name: Checkout repository
