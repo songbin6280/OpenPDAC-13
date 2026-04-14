@@ -1,0 +1,17 @@
+Checks: '-*,
+  clang-analyzer-*,
+  bugprone-*,
+  cppcoreguidelines-*,
+  hicpp-*,
+  modernize-*,
+  performance-*,
+  readability-*,
+  misc-unused-*,
+  mpi-*,
+  openmp-*,
+  -modernize-use-trailing-return-type,
+  -readability-identifier-length
+  '
+
+FormatStyle: file
+HeaderFilterRegex: '.*applications/OpenPDAC/.*'
