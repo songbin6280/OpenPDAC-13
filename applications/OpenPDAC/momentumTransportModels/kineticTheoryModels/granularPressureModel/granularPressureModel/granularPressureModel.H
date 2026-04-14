@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -53,46 +54,34 @@ class granularPressureModel
 {
     // Private member functions
 
-        //- Read the coefficients from coeffDict
-        virtual bool readCoeffs(const dictionary& coeffDict)
-        {
-            return true;
-        }
+    //- Read the coefficients from coeffDict
+    virtual bool readCoeffs(const dictionary& coeffDict) { return true; }
 
 
 public:
-
     //- Runtime type information
     TypeName("granularPressureModel");
 
     // Declare runtime constructor selection table
-    declareRunTimeSelectionTable
-    (
-        autoPtr,
-        granularPressureModel,
-        dictionary,
-        (
-            const dictionary& dict
-        ),
-        (dict)
-    );
+    declareRunTimeSelectionTable(autoPtr,
+                                 granularPressureModel,
+                                 dictionary,
+                                 (const dictionary& dict),
+                                 (dict));
 
 
     // Constructors
 
-        //- Construct from the coefficients dictionary
-        granularPressureModel(const dictionary& coeffDict);
+    //- Construct from the coefficients dictionary
+    granularPressureModel(const dictionary& coeffDict);
 
-        //- Disallow default bitwise copy construction
-        granularPressureModel(const granularPressureModel&) = delete;
+    //- Disallow default bitwise copy construction
+    granularPressureModel(const granularPressureModel&) = delete;
 
 
     // Selectors
 
-        static autoPtr<granularPressureModel> New
-        (
-            const dictionary& dict
-        );
+    static autoPtr<granularPressureModel> New(const dictionary& dict);
 
 
     //- Destructor
@@ -101,57 +90,32 @@ public:
 
     // Member Functions
 
-        //- Read the coefficients from the optional ".*Coeffs" sub-dictionary
-        //  of the given dictionary
-        bool read(const dictionary& dict);
-        
-        //- Granular pressure coefficient
-        virtual tmp<volScalarField> granularPressureCoeff
-        (
-            const volScalarField& alpha1,
-            const phaseModel& continuousPhase,
-            const volScalarField& g0,
-            const volScalarField& rho1,
-            const dimensionedScalar& e
-        ) const = 0;
+    //- Read the coefficients from the optional ".*Coeffs" sub-dictionary
+    //  of the given dictionary
+    bool read(const dictionary& dict);
 
-        //- Derivative of the granular pressure coefficient
-        virtual tmp<volScalarField> granularPressureCoeffPrime
-        (
-            const volScalarField& alpha1,
-            const phaseModel& continuousPhase,
-            const volScalarField& g0,
-            const volScalarField& g0prime,
-            const volScalarField& rho1,
-            const dimensionedScalar& e
-        ) const = 0;
+    //- Granular pressure coefficient
+    virtual tmp<volScalarField>
+    granularPressureCoeff(const phaseModel& phase1,
+                          const phaseModel& continuousPhase,
+                          const PtrList<volScalarField>& g0,
+                          const volScalarField& rho1,
+                          const dimensionedScalar& e) const = 0;
 
-        //- Granular pressure coefficient
-        virtual tmp<volScalarField> granularPressureCoeff
-        (
-            const phaseModel& phase1,
-            const phaseModel& continuousPhase,
-            const PtrList<volScalarField>& g0,
-            const volScalarField& rho1,
-            const dimensionedScalar& e
-        ) const = 0;
-
-        //- Derivative of the granular pressure coefficient
-        virtual tmp<volScalarField> granularPressureCoeffPrime
-        (
-            const phaseModel& phase1,
-            const phaseModel& continuousPhase,
-            const PtrList<volScalarField>& g0,
-            const PtrList<volScalarField>& g0prime,
-            const volScalarField& rho1,
-            const dimensionedScalar& e
-        ) const = 0;
+    //- Derivative of the granular pressure coefficient
+    virtual tmp<volScalarField>
+    granularPressureCoeffPrime(const phaseModel& phase1,
+                               const phaseModel& continuousPhase,
+                               const PtrList<volScalarField>& g0,
+                               const PtrList<volScalarField>& g0prime,
+                               const volScalarField& rho1,
+                               const dimensionedScalar& e) const = 0;
 
 
     // Member Operators
 
-        //- Disallow default bitwise assignment
-        void operator=(const granularPressureModel&) = delete;
+    //- Disallow default bitwise assignment
+    void operator=(const granularPressureModel&) = delete;
 };
 
 

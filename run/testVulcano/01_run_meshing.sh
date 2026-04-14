@@ -59,7 +59,7 @@ runParallel checkMesh -allGeometry -allTopology -writeSets
 mv log.checkMesh log.checkMesh0
 
 echo "--> Applying topological changes to the mesh with topoSet..."
-runParallel topoSet
+runParallel createZones
 
 echo "--> Deforming the mesh with topoGrid..."
 runParallel topoGrid

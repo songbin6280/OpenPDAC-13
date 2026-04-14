@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -28,15 +29,12 @@ License
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
 
 Foam::autoPtr<Foam::kineticTheoryModels::frictionalStressModel>
-Foam::kineticTheoryModels::frictionalStressModel::New
-(
-    const dictionary& dict
-)
+Foam::kineticTheoryModels::frictionalStressModel::New(const dictionary& dict)
 {
     const word frictionalStressModelType(dict.lookup("frictionalStressModel"));
 
-    Info<< "Selecting frictionalStressModel "
-        << frictionalStressModelType << endl;
+    Info << "Selecting frictionalStressModel " << frictionalStressModelType
+         << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(frictionalStressModelType);
@@ -45,7 +43,8 @@ Foam::kineticTheoryModels::frictionalStressModel::New
     {
         FatalIOErrorInFunction(dict)
             << "Unknown frictionalStressModel type "
-            << frictionalStressModelType << endl << endl
+            << frictionalStressModelType << endl
+            << endl
             << "Valid frictionalStressModel types are :" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalIOError);

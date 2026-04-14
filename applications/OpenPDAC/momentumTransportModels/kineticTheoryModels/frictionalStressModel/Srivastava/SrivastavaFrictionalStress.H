@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -49,43 +50,40 @@ namespace frictionalStressModels
                    Class Srivastava Declaration
 \*---------------------------------------------------------------------------*/
 
-class Srivastava
-:
-    public frictionalStressModel
+class Srivastava : public frictionalStressModel
 {
     // Private Data
 
-        dictionary coeffDict_;
+    dictionary coeffDict_;
 
-        //- Material constant for frictional normal stress
-        dimensionedScalar Fr_;
+    //- Material constant for frictional normal stress
+    dimensionedScalar Fr_;
 
-        //- Material constant for frictional normal stress
-        dimensionedScalar eta_;
+    //- Material constant for frictional normal stress
+    dimensionedScalar eta_;
 
-        //- Material constant for frictional normal stress
-        dimensionedScalar p_;
+    //- Material constant for frictional normal stress
+    dimensionedScalar p_;
 
-        //- Angle of internal friction
-        dimensionedScalar phi_;
+    //- Angle of internal friction
+    dimensionedScalar phi_;
 
-        //- Sin of Angle of internal friction
-        dimensionedScalar sinPhi_;
+    //- Sin of Angle of internal friction
+    dimensionedScalar sinPhi_;
 
-        //- Lower limit for (alphaMax - alpha1)
-        dimensionedScalar alphaDeltaMin_;
+    //- Lower limit for (alphaMax - alpha1)
+    dimensionedScalar alphaDeltaMin_;
 
 
 public:
-
     //- Runtime type information
     TypeName("Srivastava");
 
 
     // Constructors
 
-        //- Construct from components
-        Srivastava(const dictionary& dict);
+    //- Construct from components
+    Srivastava(const dictionary& dict);
 
 
     //- Destructor
@@ -94,34 +92,27 @@ public:
 
     // Member Functions
 
-        virtual tmp<volScalarField> frictionalPressure
-        (
-            const phaseModel& phase,
-            const phaseModel& continuousPhase,
-            const dimensionedScalar& alphaMinFriction,
-            const volScalarField& alphasMax
-        ) const;
+    virtual tmp<volScalarField>
+    frictionalPressure(const phaseModel& phase,
+                       const phaseModel& continuousPhase,
+                       const dimensionedScalar& alphaMinFriction,
+                       const volScalarField& alphasMax) const;
 
-        virtual tmp<volScalarField> frictionalPressurePrime
-        (
-            const phaseModel& phase,
-            const phaseModel& continuousPhase,
-            const dimensionedScalar& alphaMinFriction,
-            const volScalarField& alphasMax
-        ) const;
+    virtual tmp<volScalarField>
+    frictionalPressurePrime(const phaseModel& phase,
+                            const phaseModel& continuousPhase,
+                            const dimensionedScalar& alphaMinFriction,
+                            const volScalarField& alphasMax) const;
 
-        virtual tmp<volScalarField> nu
-        (
-            const phaseModel& phase,
-            const phaseModel& continuousPhase,
-            const dimensionedScalar& alphaMinFriction,
-            const volScalarField& alphasMax,
-            const volScalarField& pf,
-            const volScalarField& rho,
-            const volSymmTensorField& D
-        ) const;
+    virtual tmp<volScalarField> nu(const phaseModel& phase,
+                                   const phaseModel& continuousPhase,
+                                   const dimensionedScalar& alphaMinFriction,
+                                   const volScalarField& alphasMax,
+                                   const volScalarField& pf,
+                                   const volScalarField& rho,
+                                   const volSymmTensorField& D) const;
 
-        virtual bool read();
+    virtual bool read();
 };
 
 

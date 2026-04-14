@@ -34,8 +34,8 @@ namespace Foam
 {
 namespace dragModels
 {
-    defineTypeNameAndDebug(solidSolidDrag, 0);
-    addToRunTimeSelectionTable(dragModel, solidSolidDrag, dictionary);
+defineTypeNameAndDebug(solidSolidDrag, 0);
+addToRunTimeSelectionTable(dragModel, solidSolidDrag, dictionary);
 }
 }
 
@@ -43,218 +43,84 @@ namespace dragModels
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
 Foam::tmp<Foam::volScalarField>
-Foam::dragModels::solidSolidDrag::KSolidSolid
-(
- const phaseModel& gas,
- const phaseModel& solid1,
- const phaseModel& solid2
- ) const
+Foam::dragModels::solidSolidDrag::KSolidSolid(const phaseModel& gas,
+                                              const phaseModel& solid1,
+                                              const phaseModel& solid2) const
 {
- if (PPdragRadialModel_ == "SinclairJackson")
-    {
-      const phaseSystem& fluid = gas.fluid();
-      const volScalarField& alphag = gas;
-      const volScalarField& alphas1 = solid1;
-      const volScalarField& alphas2 = solid2;
-      const scalar Pi = constant::mathematical::pi;
-      const volScalarField magURel(mag(solid1.U() - solid2.U()));
-      const volScalarField alphasMax = fluid.alfasMax();
-      const word& continuousPhaseName = fluid.continuousPhaseName();
-      const phaseModel& continuousPhase = fluid.phases()[continuousPhaseName];
+    const phaseSystem& fluid = gas.fluid();
+    const volScalarField& alphas1 = solid1;
+    const volScalarField& alphas2 = solid2;
+    const scalar Pi = constant::mathematical::pi;
+    const volScalarField magURel(mag(solid1.U() - solid2.U()));
+    const volScalarField alphasMax = fluid.alfasMax();
+    const word& continuousPhaseName = fluid.continuousPhaseName();
+    const phaseModel& continuousPhase = fluid.phases()[continuousPhaseName];
 
-      volScalarField alphas = 1.0 - alphag;
-      volScalarField g0 = 1.0/(1 - cbrt(alphas/alphasMax));
-      volScalarField const_sum = 0.0/solid1.d();
+    // Get alphaMinFriction from the central phaseSystem
+    const dimensionedScalar& alphaMinFriction = fluid.alphaMinFriction();
 
-      forAll(fluid.phases(), phaseIdx)
-        {
-	  const phaseModel& phase = fluid.phases()[phaseIdx];
+    PtrList<volScalarField> g0_list_for_solid1 =
+        fluid.radial().g0(solid1, continuousPhase, alphaMinFriction, alphasMax);
 
-	  if (&phase != &continuousPhase)
-            {
-	      const volScalarField& alpha = phase;
-	      const_sum += alpha / phase.d();
-            }
-        }
-	
-      // Eq. 16.5-71 https://www.afs.enea.it/project/neptunius/docs/fluent/html/th/node323.htm
-      volScalarField g0_11 = g0 + 0.5*solid1.d()*const_sum;
-      volScalarField g0_22 = g0 + 0.5*solid2.d()*const_sum;
+    const volScalarField& g0_12 = g0_list_for_solid1[solid2.index()];
 
-      // Eq. 16.5-76 https://www.afs.enea.it/project/neptunius/docs/fluent/html/th/node323.htm
-      volScalarField g0_12 = ( solid2.d()*g0_11 + solid1.d()*g0_22 ) / ( solid1.d() + solid2.d() );
+    // Eq. 16.5-43
+    // https://www.afs.enea.it/project/neptunius/docs/fluent/html/th/node323.htm
+    volScalarField fractNum = 3.0 * (1.0 + E_)
+                            * (Pi / 2.0 + Cf_ * sqr(Pi) / 8.0) * alphas1
+                            * solid1.rho() * alphas2 * solid2.rho()
+                            * sqr(solid1.d() + solid2.d()) * g0_12 * magURel;
 
-      // Eq. 16.5-43 https://www.afs.enea.it/project/neptunius/docs/fluent/html/th/node323.htm
-      volScalarField fractNum = 3.0 * ( 1.0 + E_ ) * ( Pi / 2.0 + Cf_ * sqr(Pi) / 8.0 )
-	* alphas1 * solid1.rho() * alphas2 * solid2.rho() * sqr( solid1.d() + solid2.d() )
-	* g0_12 * magURel;
+    volScalarField fractDen = 2.0 * Pi
+                            * (solid1.rho() * pow(solid1.d(), 3.0)
+                               + solid2.rho() * pow(solid2.d(), 3.0));
 
-      volScalarField fractDen = 2.0 * Pi * ( solid1.rho() * pow(solid1.d(), 3.0)
-					     + solid2.rho() * pow(solid2.d(), 3.0) );
-
-      return ( fractNum / fractDen );
-    }
-
-  else if (PPdragRadialModel_ == "Lebowitz")
-    {
-      const phaseSystem& fluid = gas.fluid();
-      const volScalarField& alphag = gas;
-      const volScalarField& alphas1 = solid1;
-      const volScalarField& alphas2 = solid2;
-      const scalar Pi = constant::mathematical::pi;
-      const volScalarField magURel(mag(solid1.U() - solid2.U()));
-      const volScalarField alphasMax = fluid.alfasMax();
-      const word& continuousPhaseName = fluid.continuousPhaseName();
-      const phaseModel& continuousPhase = fluid.phases()[continuousPhaseName];
-
-      volScalarField alphas = 1.0 - alphag;
-      volScalarField const_sum = 0.0/solid1.d();
-
-      forAll(fluid.phases(), phaseIdx)
-        {
-          const phaseModel& phase = fluid.phases()[phaseIdx];
-
-          if (&phase != &continuousPhase)
-            {
-              const volScalarField& alpha = phase;
-              const_sum += alpha / phase.d();
-            }
-        }
-
-      volScalarField g0_11 = 1.0/continuousPhase + (3.0*solid1.d()/(sqr(continuousPhase) + 1.0))*const_sum;
-      volScalarField g0_22 = 1.0/continuousPhase + (3.0*solid2.d()/(sqr(continuousPhase) + 1.0))*const_sum;
-      volScalarField g0_12 = 1.0/continuousPhase + (3.0*solid1.d()*solid2.d()/(sqr(continuousPhase)*solid1.d() + solid2.d()))*const_sum;
-
-      // Eq. 16.5-43 https://www.afs.enea.it/project/neptunius/docs/fluent/html/th/node323.htm                      
-      volScalarField fractNum = 3.0 * ( 1.0 + E_ ) * ( Pi / 2.0 + Cf_ * sqr(Pi) / 8.0 )
-        * alphas1 * solid1.rho() * alphas2 * solid2.rho() * sqr( solid1.d() + solid2.d() )
-        * g0_12 * magURel;
-
-      volScalarField fractDen = 2.0 * Pi * ( solid1.rho() * pow(solid1.d(), 3.0) + solid2.rho() * pow(solid2.d(), 3.0) );
-
-      return ( fractNum / fractDen );
-    }
-
-  else if (PPdragRadialModel_ == "CarnahanStarling")
-    {
-      const phaseSystem& fluid = gas.fluid();
-      const volScalarField& alphag = gas;
-      const volScalarField& alphas1 = solid1;
-      const volScalarField& alphas2 = solid2;
-      const scalar Pi = constant::mathematical::pi;
-      const volScalarField magURel(mag(solid1.U() - solid2.U()));
-      const volScalarField alphasMax = fluid.alfasMax();
-      const word& continuousPhaseName = fluid.continuousPhaseName();
-      const phaseModel& continuousPhase = fluid.phases()[continuousPhaseName];
-
-     volScalarField zeta3 = 1.0 - alphag;
-     volScalarField zeta2 = alphas1/solid1.d() + alphas2/solid2.d();
-      
-     //      volScalarField alphas = 1.0 - alphag;
-      volScalarField const_sum = 0.0/solid1.d();
-
-      forAll(fluid.phases(), phaseIdx)
-        {
-          const phaseModel& phase = fluid.phases()[phaseIdx];
-
-          if (&phase != &continuousPhase)
-            {
-              const volScalarField& alpha = phase;
-              const_sum += alpha / phase.d();
-            }
-        }
-
-      volScalarField g0_11 = 1.0/(1.0 - zeta3) + (1.5*solid1.d()*zeta2)/sqr(1.0 - zeta3)
-	+ (0.5*sqr(solid1.d())*sqr(zeta2))/pow3(1.0 - zeta3);
-
-      volScalarField g0_22 = 1.0/(1.0 - zeta3) + (1.5*solid2.d()*zeta2)/sqr(1.0 - zeta3)
-	+ (0.5*sqr(solid2.d())*sqr(zeta2))/pow3(1.0 - zeta3);
-
-      volScalarField g0_12 = 1.0/(1.0 - zeta3) + (3.0*solid1.d()*solid2.d()/(solid1.d() + solid2.d())*zeta2)/sqr(1.0 - zeta3)
-	+ (2.0*sqr(solid1.d()*solid2.d()/(solid1.d() + solid2.d()))*sqr(zeta2))/pow3(1.0 - zeta3);
-
-      // Eq. 16.5-43 https://www.afs.enea.it/project/neptunius/docs/fluent/html/th/node323.htm                                                
-      volScalarField fractNum = 3.0 * ( 1.0 + E_ ) * ( Pi / 2.0 + Cf_ * sqr(Pi) / 8.0 )
-        * alphas1 * solid1.rho() * alphas2 * solid2.rho() * sqr( solid1.d() + solid2.d() )
-        * g0_12 * magURel;
-
-      volScalarField fractDen = 2.0 * Pi * ( solid1.rho() * pow(solid1.d(), 3.0) + solid2.rho() * pow(solid2.d(), 3.0) );
-
-      return ( fractNum / fractDen );
-    }
-
-  else
-    {
-
-      FatalErrorInFunction
-	<< "The 'else' block was executed in solidSolidDrag.C since no valid model was found." << nl
-	<< "PPdragRadialModel was set to: " << nl
-	<< PPdragRadialModel_ << nl
-	<< "" << nl
-	<< "Available options are:" << nl
-	<< "" << nl
-	<< "SinclairJackson" << nl
-	<< "Lebowitz" << nl
-	<< "CarnahanStarling"
-	<< exit(FatalError);
-
-      return tmp<volScalarField>(nullptr);
-    }
-
+    return (fractNum / fractDen);
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::dragModels::solidSolidDrag::solidSolidDrag
-(
+Foam::dragModels::solidSolidDrag::solidSolidDrag(
     const dictionary& dict,
     const phaseInterface& interface,
-    const bool registerObject
-)
-:
-    dragModel(dict, interface, registerObject),
-    interface_(interface),
-    gasName_(dict.lookup("gas")),
-    solid1Name_(dict.lookup("solid1")),
-    solid2Name_(dict.lookup("solid2")),
-    PPdragRadialModel_(dict.lookup("PPdragRadialModel")),
-    E_("E", dimless, dict),
-    Cf_("Cf", dimless, dict)
-{}
+    const bool registerObject)
+: dragModel(dict, interface, registerObject), interface_(interface),
+  gasName_(dict.lookup("gas")), solid1Name_(dict.lookup("solid1")),
+  solid2Name_(dict.lookup("solid2")), E_("E", dimless, dict),
+  Cf_("Cf", dimless, dict)
+{
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::dragModels::solidSolidDrag::~solidSolidDrag()
-{}
+Foam::dragModels::solidSolidDrag::~solidSolidDrag() {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::tmp<Foam::volScalarField>
-Foam::dragModels::solidSolidDrag::K() const
+Foam::tmp<Foam::volScalarField> Foam::dragModels::solidSolidDrag::K() const
 {
     const phaseModel& gas = interface_.fluid().phases()[gasName_];
     const phaseModel& solid1 = interface_.fluid().phases()[solid1Name_];
     const phaseModel& solid2 = interface_.fluid().phases()[solid2Name_];
 
     if (interface_.contains(solid1) && interface_.contains(solid2))
-    {    
+    {
         return KSolidSolid(gas, solid1, solid2);
     }
 
-    FatalErrorInFunction
-        << "The interface " << interface_.name() << " does not contain two "
-        << "out of the gas, liquid and solid phase models."
-        << exit(FatalError);
+    FatalErrorInFunction << "The interface " << interface_.name()
+                         << " does not contain two "
+                         << "out of the gas, liquid and solid phase models."
+                         << exit(FatalError);
 
     return tmp<volScalarField>(nullptr);
 }
 
 
-Foam::tmp<Foam::surfaceScalarField>
-Foam::dragModels::solidSolidDrag::Kf() const
+Foam::tmp<Foam::surfaceScalarField> Foam::dragModels::solidSolidDrag::Kf() const
 {
     return fvc::interpolate(K());
 }

@@ -13,11 +13,6 @@ kineticTheoryModels/conductivityModel/conductivityModel/conductivityModelNew.C
 kineticTheoryModels/conductivityModel/Gidaspow/GidaspowConductivity.C
 kineticTheoryModels/conductivityModel/Lun/LunConductivity.C
 
-kineticTheoryModels/radialModel/radialModel/radialModel.C
-kineticTheoryModels/radialModel/radialModel/radialModelNew.C
-kineticTheoryModels/radialModel/SinclairJackson/SinclairJackson.C
-kineticTheoryModels/radialModel/Lebowitz/Lebowitz.C
-kineticTheoryModels/radialModel/CarnahanStarling/CarnahanStarling.C
 
 kineticTheoryModels/granularPressureModel/granularPressureModel/granularPressureModel.C
 kineticTheoryModels/granularPressureModel/granularPressureModel/granularPressureModelNew.C

@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -53,46 +54,34 @@ class frictionalStressModel
 {
     // Private member functions
 
-        //- Read the coefficients from coeffDict
-        virtual bool readCoeffs(const dictionary& coeffDict)
-        {
-            return true;
-        }
+    //- Read the coefficients from coeffDict
+    virtual bool readCoeffs(const dictionary& coeffDict) { return true; }
 
 
 public:
-
     //- Runtime type information
     TypeName("frictionalStressModel");
 
     // Declare runtime constructor selection table
-    declareRunTimeSelectionTable
-    (
-        autoPtr,
-        frictionalStressModel,
-        dictionary,
-        (
-            const dictionary& dict
-        ),
-        (dict)
-    );
+    declareRunTimeSelectionTable(autoPtr,
+                                 frictionalStressModel,
+                                 dictionary,
+                                 (const dictionary& dict),
+                                 (dict));
 
 
     // Constructors
 
-        //- Construct from the coefficients dictionary
-        frictionalStressModel(const dictionary& coeffDict);
+    //- Construct from the coefficients dictionary
+    frictionalStressModel(const dictionary& coeffDict);
 
-        //- Disallow default bitwise copy construction
-        frictionalStressModel(const frictionalStressModel&) = delete;
+    //- Disallow default bitwise copy construction
+    frictionalStressModel(const frictionalStressModel&) = delete;
 
 
     // Selectors
 
-        static autoPtr<frictionalStressModel> New
-        (
-            const dictionary& dict
-        );
+    static autoPtr<frictionalStressModel> New(const dictionary& dict);
 
 
     //- Destructor
@@ -101,42 +90,35 @@ public:
 
     // Member Functions
 
-        //- Read the coefficients from the optional ".*Coeffs" sub-dictionary
-        //  of the given dictionary
-        bool read(const dictionary& dict);
+    //- Read the coefficients from the optional ".*Coeffs" sub-dictionary
+    //  of the given dictionary
+    bool read(const dictionary& dict);
 
-        virtual tmp<volScalarField> frictionalPressure
-        (
-            const phaseModel& phase,
-            const phaseModel& continuousPhase,
-            const dimensionedScalar& alphaMinFriction,
-            const volScalarField& alphasMax
-        ) const = 0;
+    virtual tmp<volScalarField>
+    frictionalPressure(const phaseModel& phase,
+                       const phaseModel& continuousPhase,
+                       const dimensionedScalar& alphaMinFriction,
+                       const volScalarField& alphasMax) const = 0;
 
-        virtual tmp<volScalarField> frictionalPressurePrime
-        (
-            const phaseModel& phase,
-            const phaseModel& continuousPhase,
-            const dimensionedScalar& alphaMinFriction,
-            const volScalarField& alphasMax
-        ) const = 0;
+    virtual tmp<volScalarField>
+    frictionalPressurePrime(const phaseModel& phase,
+                            const phaseModel& continuousPhase,
+                            const dimensionedScalar& alphaMinFriction,
+                            const volScalarField& alphasMax) const = 0;
 
-        virtual tmp<volScalarField> nu
-        (
-            const phaseModel& phase,
-            const phaseModel& continuousPhase,
-            const dimensionedScalar& alphaMinFriction,
-            const volScalarField& alphasMax,
-            const volScalarField& pf,
-            const volScalarField& rho,
-            const volSymmTensorField& D
-        ) const = 0;
+    virtual tmp<volScalarField> nu(const phaseModel& phase,
+                                   const phaseModel& continuousPhase,
+                                   const dimensionedScalar& alphaMinFriction,
+                                   const volScalarField& alphasMax,
+                                   const volScalarField& pf,
+                                   const volScalarField& rho,
+                                   const volSymmTensorField& D) const = 0;
 
 
     // Member Operators
 
-        //- Disallow default bitwise assignment
-        void operator=(const frictionalStressModel&) = delete;
+    //- Disallow default bitwise assignment
+    void operator=(const frictionalStressModel&) = delete;
 };
 
 

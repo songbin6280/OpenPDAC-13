@@ -32,59 +32,68 @@ namespace Foam
 {
 namespace dragModels
 {
-    defineTypeNameAndDebug(WenYu, 0);
-    addToRunTimeSelectionTable(dragModel, WenYu, dictionary);
+defineTypeNameAndDebug(WenYu, 0);
+addToRunTimeSelectionTable(dragModel, WenYu, dictionary);
 }
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::dragModels::WenYu::WenYu
-(
-    const dictionary& dict,
-    const phaseInterface& interface,
-    const bool registerObject
-)
-:
-    dispersedDragModel(dict, interface, registerObject)
-{}
+Foam::dragModels::WenYu::WenYu(const dictionary& dict,
+                               const phaseInterface& interface,
+                               const bool registerObject)
+: dispersedDragModel(dict, interface, registerObject)
+{
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::dragModels::WenYu::~WenYu()
-{}
+Foam::dragModels::WenYu::~WenYu() {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 Foam::tmp<Foam::volScalarField> Foam::dragModels::WenYu::CdRe() const
 {
-    const volScalarField alpha2
-    (
-        max(1.0 - interface_.dispersed(), interface_.continuous().residualAlpha())
-    );
+    const volScalarField alpha2(
+        max(interface_.continuous(), interface_.continuous().residualAlpha()));
 
-    const volScalarField Res(alpha2*interface_.Re());
+    const volScalarField Res(alpha2 * interface_.Re());
+
+    Info << "WenYu: dispersed min/max = " << min(interface_.dispersed()).value()
+         << " " << max(interface_.dispersed()).value() << nl;
+
+    Info << "WenYu: alpha2 min/max = " << min(alpha2).value() << " "
+         << max(alpha2).value() << nl;
+
+    Info << "WenYu: Re min/max = " << min(interface_.Re()).value() << " "
+         << max(interface_.Re()).value() << nl;
 
     /*
-    Info << "Re min, max = " << min(interface_.Re()).value()  << " " << max(interface_.Re()).value() << endl;
-
-    Info << "nu min, max = " << min(interface_.continuous().fluidThermo().nu()).value()  << " " << max(interface_.continuous().fluidThermo().nu()).value() << endl;
-
-    Info << "rho min, max = " << min(interface_.continuous().fluidThermo().rho()).value()  << " " << max(interface_.continuous().fluidThermo().rho()).value() << endl;
-
-    Info << "Res min, max = " << min(Res).value()  << " " << max(Res).value() << endl;
+    Info << "Re min, max = " << min(interface_.Re()).value()  << " " <<
+    max(interface_.Re()).value() << endl;
     */
 
-    const volScalarField CdsRes
-    (
-        neg(Res - 1000)*24*(1.0 + 0.15*pow(Res, 0.687))
-      + pos0(Res - 1000)*0.44*Res
-    );
+    Info << "nu min, max = "
+         << min(interface_.continuous().fluidThermo().nu()).value() << " "
+         << max(interface_.continuous().fluidThermo().nu()).value() << endl;
 
-    return CdsRes*pow(alpha2, -2.65);
+    Info << "rho min, max = "
+         << min(interface_.continuous().fluidThermo().rho()).value() << " "
+         << max(interface_.continuous().fluidThermo().rho()).value() << endl;
+
+    /*
+        Info << "Res min, max = " << min(Res).value()  << " " <<
+       max(Res).value() << endl;
+        */
+
+    const volScalarField CdsRes(neg(Res - 1000) * 24
+                                    * (1.0 + 0.15 * pow(Res, 0.687))
+                                + pos0(Res - 1000) * 0.44 * Res);
+
+    return CdsRes * pow(alpha2, -2.65);
 }
 
 

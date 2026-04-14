@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -35,14 +36,11 @@ namespace kineticTheoryModels
 {
 namespace granularPressureModels
 {
-    defineTypeNameAndDebug(SyamlalRogersOBrien, 0);
+defineTypeNameAndDebug(SyamlalRogersOBrien, 0);
 
-    addToRunTimeSelectionTable
-    (
-        granularPressureModel,
-        SyamlalRogersOBrien,
-        dictionary
-    );
+addToRunTimeSelectionTable(granularPressureModel,
+                           SyamlalRogersOBrien,
+                           dictionary);
 }
 }
 }
@@ -51,83 +49,46 @@ namespace granularPressureModels
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::kineticTheoryModels::granularPressureModels::SyamlalRogersOBrien::
-SyamlalRogersOBrien
-(
-    const dictionary& coeffDict
-)
-:
-    granularPressureModel(coeffDict)
-{}
+    SyamlalRogersOBrien(const dictionary& coeffDict)
+: granularPressureModel(coeffDict)
+{
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 Foam::kineticTheoryModels::granularPressureModels::SyamlalRogersOBrien::
-~SyamlalRogersOBrien()
-{}
+    ~SyamlalRogersOBrien()
+{
+}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 Foam::tmp<Foam::volScalarField>
 Foam::kineticTheoryModels::granularPressureModels::SyamlalRogersOBrien::
-granularPressureCoeff
-(
-    const volScalarField& alpha1,
-    const phaseModel& continuousPhase,
-    const volScalarField& g0,
-    const volScalarField& rho1,
-    const dimensionedScalar& e
-) const
-{
-
-    return 2*rho1*(1 + e)*sqr(alpha1)*g0;
-}
-
-
-Foam::tmp<Foam::volScalarField>
-Foam::kineticTheoryModels::granularPressureModels::SyamlalRogersOBrien::
-granularPressureCoeffPrime
-(
-    const volScalarField& alpha1,
-    const phaseModel& continuousPhase,
-    const volScalarField& g0,
-    const volScalarField& g0prime,
-    const volScalarField& rho1,
-    const dimensionedScalar& e
-) const
-{
-    return rho1*alpha1*(1 + e)*(4*g0 + 2*g0prime*alpha1);
-}
-
-Foam::tmp<Foam::volScalarField>
-Foam::kineticTheoryModels::granularPressureModels::SyamlalRogersOBrien::
-granularPressureCoeff
-(
-    const phaseModel& phase1,
-    const phaseModel& continuousPhase,
-    const PtrList<volScalarField>& g0_im,
-    const volScalarField& rho1,
-    const dimensionedScalar& e
-) const
+    granularPressureCoeff(const phaseModel& phase1,
+                          const phaseModel& continuousPhase,
+                          const PtrList<volScalarField>& g0_im,
+                          const volScalarField& rho1,
+                          const dimensionedScalar& e) const
 {
 
     volScalarField alpha1 = phase1;
     const phaseSystem& fluid = phase1.fluid();
-    
-    volScalarField pCoeff = 0.0*rho1;
-    dimensionedScalar eta = 0.5*( 1.0 + e );
-    
+
+    volScalarField pCoeff = 0.0 * rho1;
+    dimensionedScalar eta = 0.5 * (1.0 + e);
+
     forAll(fluid.phases(), phasei)
     {
         const phaseModel& phase = fluid.phases()[phasei];
-        
+
         if (&phase != &continuousPhase)
         {
             const volScalarField& alpha = phase;
-	
-            pCoeff += alpha1*rho1*(4.0 * eta * alpha * g0_im[phasei]);  
 
+            pCoeff += alpha1 * rho1 * (4.0 * eta * alpha * g0_im[phasei]);
         }
     }
 
@@ -138,51 +99,35 @@ granularPressureCoeff
 
 Foam::tmp<Foam::volScalarField>
 Foam::kineticTheoryModels::granularPressureModels::SyamlalRogersOBrien::
-granularPressureCoeffPrime
-(
-    const phaseModel& phase1,
-    const phaseModel& continuousPhase,
-    const PtrList<volScalarField>& g0_im,
-    const PtrList<volScalarField>& g0prime_im,
-    const volScalarField& rho1,
-    const dimensionedScalar& e
-) const
+    granularPressureCoeffPrime(const phaseModel& phase1,
+                               const phaseModel& continuousPhase,
+                               const PtrList<volScalarField>& g0_im,
+                               const PtrList<volScalarField>& g0prime_im,
+                               const volScalarField& rho1,
+                               const dimensionedScalar& e) const
 {
-
-    volScalarField alpha1 = phase1;
     const phaseSystem& fluid = phase1.fluid();
 
-    dimensionedScalar eta = 0.5*( 1.0 + e );
+    const dimensionedScalar eta("eta", dimless, 0.5 * (1.0 + e.value()));
 
-    volScalarField pCoeffprime = 0.0*rho1;
-            
+    tmp<volScalarField> tpCoeffPrime(
+        volScalarField::New("granularPressureCoeffPrime", 0.0 * rho1));
+
+    volScalarField& pCoeffPrime = tpCoeffPrime.ref();
+
     forAll(fluid.phases(), phasei)
     {
-        const phaseModel& phase = fluid.phases()[phasei];
-        
-        if (&phase != &continuousPhase)
-        {
-            const volScalarField& alpha = phase;
-	
-            pCoeffprime += rho1*(4.0 * eta * alpha * g0_im[phasei]);  
+        const phaseModel& phase2 = fluid.phases()[phasei];
 
-        }
-    }    
-    
-    forAll(fluid.phases(), phasei)
-    {
-        const phaseModel& phase = fluid.phases()[phasei];
-        
-        if (&phase != &continuousPhase)
+        if (&phase2 != &continuousPhase)
         {
-            const volScalarField& alpha = phase;
-	
-            pCoeffprime += alpha1*rho1*(4.0 * eta * alpha * g0prime_im[phasei]);  
+            const volScalarField& alpha2 = phase2;
 
+            pCoeffPrime += rho1 * (4.0 * eta * alpha2 * g0_im[phasei]);
         }
-    }    
-    
-    return pCoeffprime;
+    }
+
+    return tpCoeffPrime;
 }
 
 // ************************************************************************* //

@@ -2,6 +2,12 @@ phaseModel/phaseModel.C
 phaseModel/phaseModelNew.C
 phaseModels/phaseModels.C
 
+radialModel/radialModel/radialModel.C
+radialModel/radialModel/radialModelNew.C
+radialModel/SinclairJackson/SinclairJackson.C
+radialModel/Lebowitz/Lebowitz.C
+radialModel/CarnahanStarling/CarnahanStarling.C
+
 phaseInterface/phaseInterfaceKey/phaseInterfaceKey.C
 phaseInterface/phaseInterface/phaseInterface.C
 phaseInterface/dispersedPhaseInterface/dispersedPhaseInterface.C
@@ -50,23 +56,13 @@ interfacialModels/BlendedInterfacialModel/blendingMethods/segregatedBlendingMeth
 interfacialModels/dragModels/dragModel/dragModel.C
 interfacialModels/dragModels/dragModel/dragModelNew.C
 interfacialModels/dragModels/dispersedDragModel/dispersedDragModel.C
-interfacialModels/dragModels/Beetstra/Beetstra.C
 interfacialModels/dragModels/segregated/segregated.C
 interfacialModels/dragModels/Ergun/Ergun.C
-interfacialModels/dragModels/Gibilaro/Gibilaro.C
 interfacialModels/dragModels/GidaspowErgunWenYu/GidaspowErgunWenYu.C
 interfacialModels/dragModels/GidaspowSchillerNaumann/GidaspowSchillerNaumann.C
-interfacialModels/dragModels/Lain/Lain.C
 interfacialModels/dragModels/SchillerNaumann/SchillerNaumann.C
 interfacialModels/dragModels/SyamlalOBrien/SyamlalOBrien.C
-interfacialModels/dragModels/TomiyamaCorrelated/TomiyamaCorrelated.C
-interfacialModels/dragModels/TomiyamaAnalytic/TomiyamaAnalytic.C
-interfacialModels/dragModels/Tenneti/Tenneti.C
-interfacialModels/dragModels/TomiyamaKataokaZunSakaguchi/TomiyamaKataokaZunSakaguchi.C
 interfacialModels/dragModels/WenYu/WenYu.C
-interfacialModels/dragModels/IshiiZuber/IshiiZuber.C
-interfacialModels/dragModels/AttouFerschneider/AttouFerschneider.C
-interfacialModels/dragModels/aerosolDrag/aerosolDrag.C
 
 interfacialModels/dragModels/NonSphericalErgun/NonSphericalErgun.C
 interfacialModels/dragModels/NonSphericalWenYu/NonSphericalWenYu.C

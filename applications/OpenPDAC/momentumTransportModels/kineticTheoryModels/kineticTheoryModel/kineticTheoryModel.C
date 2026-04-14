@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -65,241 +66,130 @@ Foam::RASModels::kineticTheoryModel::continuousPhase() const
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::RASModels::kineticTheoryModel::kineticTheoryModel
-(
+Foam::RASModels::kineticTheoryModel::kineticTheoryModel(
     const volScalarField& alpha,
     const volScalarField& rho,
     const volVectorField& U,
     const surfaceScalarField& alphaRhoPhi,
     const surfaceScalarField& phi,
     const viscosity& viscosity,
-    const word& type
-)
-:
-    eddyViscosity<RASModel<phaseCompressible::momentumTransportModel>>
-    (
-        type,
-        alpha,
-        rho,
-        U,
-        alphaRhoPhi,
-        phi,
-        viscosity
-    ),
+    const word& type)
+: eddyViscosity<RASModel<phaseCompressible::momentumTransportModel>>(
+      type, alpha, rho, U, alphaRhoPhi, phi, viscosity),
 
-    phase_(refCast<const phaseModel>(viscosity)),
+  phase_(refCast<const phaseModel>(viscosity)),
 
-    continuousPhaseName_
-    (
-        coeffDict().lookupOrDefault("continuousPhase", word::null)
-    ),
-    
-    viscosityModel_
-    (
-        kineticTheoryModels::viscosityModel::New
-        (
-            coeffDict()
-        )
-    ),
-    conductivityModel_
-    (
-        kineticTheoryModels::conductivityModel::New
-        (
-            coeffDict()
-        )
-    ),
-    radialModel_
-    (
-        kineticTheoryModels::radialModel::New
-        (
-            coeffDict()
-        )
-    ),
-    granularPressureModel_
-    (
-        kineticTheoryModels::granularPressureModel::New
-        (
-            coeffDict()
-        )
-    ),
-    frictionalStressModel_
-    (
-        kineticTheoryModels::frictionalStressModel::New
-        (
-            coeffDict()
-        )
-    ),
+  continuousPhaseName_(
+      coeffDict().lookupOrDefault("continuousPhase", word::null)),
 
-    frictInTheta_(coeffDict().lookupOrDefault("frictInTheta",false)),
+  viscosityModel_(kineticTheoryModels::viscosityModel::New(coeffDict())),
+  conductivityModel_(kineticTheoryModels::conductivityModel::New(coeffDict())),
+  granularPressureModel_(
+      kineticTheoryModels::granularPressureModel::New(coeffDict())),
+  frictionalStressModel_(
+      kineticTheoryModels::frictionalStressModel::New(coeffDict())),
 
-    multiParticles_(coeffDict().lookupOrDefault("multiParticles",false)),
-    equilibrium_(coeffDict().lookup("equilibrium")),
-    e_("e", dimless, coeffDict()),
-    alphaMinFriction_
-    (
-        "alphaMinFriction",
-        dimless,
-        coeffDict()
-    ),
-    residualAlpha_
-    (
-        "residualAlpha",
-        dimless,
-        coeffDict()
-    ),
+  frictInTheta_(coeffDict().lookupOrDefault("frictInTheta", false)),
 
-    maxNut_
-    (
-        "maxNut",
-        dimensionSet(0, 2, -1, 0, 0),
-        coeffDict().lookupOrDefault<scalar>("maxNut", 1000)
-    ),
+  multiParticles_(coeffDict().lookupOrDefault("multiParticles", false)),
+  equilibrium_(coeffDict().lookup("equilibrium")),
+  e_("e", dimless, coeffDict()),
+  residualAlpha_("residualAlpha", dimless, coeffDict()),
 
-    residualTheta_
-    (
-        "residualTheta",
-        dimensionSet(0, 2, -2, 0, 0),
-        coeffDict().lookupOrDefault<scalar>("residualTheta", 1e-6)
-    ),
+  maxNut_("maxNut",
+          dimensionSet(0, 2, -1, 0, 0),
+          coeffDict().lookupOrDefault<scalar>("maxNut", 1000)),
 
-    Theta_
-    (
-        IOobject
-        (
-            IOobject::groupName("Theta", phase_.name()),
-            U.time().name(),
-            U.mesh(),
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        U.mesh()
-    ),
+  residualTheta_("residualTheta",
+                 dimensionSet(0, 2, -2, 0, 0),
+                 coeffDict().lookupOrDefault<scalar>("residualTheta", 1e-6)),
 
-    lambda_
-    (
-        IOobject
-        (
-            IOobject::groupName(typedName("lambda"), phase_.name()),
-            U.time().name(),
-            U.mesh(),
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        U.mesh(),
-        dimensionedScalar(dimensionSet(0, 2, -1, 0, 0), 0)
-    ),
+  Theta_(IOobject(IOobject::groupName("Theta", phase_.name()),
+                  U.time().name(),
+                  U.mesh(),
+                  IOobject::MUST_READ,
+                  IOobject::AUTO_WRITE),
+         U.mesh()),
 
-    gs0_
-    (
-        IOobject
-        (
-            IOobject::groupName(typedName("gs0"), phase_.name()),
-            U.time().name(),
-            U.mesh(),
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        U.mesh(),
-        dimensionedScalar(dimensionSet(0, 0, 0, 0, 0), 0)
-    ),
+  lambda_(IOobject(IOobject::groupName(typedName("lambda"), phase_.name()),
+                   U.time().name(),
+                   U.mesh(),
+                   IOobject::NO_READ,
+                   IOobject::NO_WRITE),
+          U.mesh(),
+          dimensionedScalar(dimensionSet(0, 2, -1, 0, 0), 0)),
 
-    sumAlphaGs0_
-    (
-        IOobject
-        (
-            IOobject::groupName(typedName("gs0"), phase_.name()),
-            U.time().name(),
-            U.mesh(),
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        U.mesh(),
-        dimensionedScalar(dimensionSet(0, 0, 0, 0, 0), 0)
-    ),
+  gs0_(IOobject(IOobject::groupName(typedName("gs0"), phase_.name()),
+                U.time().name(),
+                U.mesh(),
+                IOobject::NO_READ,
+                IOobject::NO_WRITE),
+       U.mesh(),
+       dimensionedScalar(dimensionSet(0, 0, 0, 0, 0), 0)),
 
-    kappa_
-    (
-        IOobject
-        (
-            IOobject::groupName(typedName("kappa"), phase_.name()),
-            U.time().name(),
-            U.mesh(),
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        U.mesh(),
-        dimensionedScalar(dimensionSet(1, -1, -1, 0, 0), 0)
-    ),
+  sumAlphaGs0_(
+      IOobject(IOobject::groupName(typedName("sumAlphaGs0"), phase_.name()),
+               U.time().name(),
+               U.mesh(),
+               IOobject::NO_READ,
+               IOobject::NO_WRITE),
+      U.mesh(),
+      dimensionedScalar(dimensionSet(0, 0, 0, 0, 0), 0)),
 
-    nuFric_
-    (
-        IOobject
-        (
-            IOobject::groupName(typedName("nuFric"), phase_.name()),
-            U.time().name(),
-            U.mesh(),
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        U.mesh(),
-        dimensionedScalar(dimensionSet(0, 2, -1, 0, 0), 0)
-    ),
+  kappa_(IOobject(IOobject::groupName(typedName("kappa"), phase_.name()),
+                  U.time().name(),
+                  U.mesh(),
+                  IOobject::NO_READ,
+                  IOobject::NO_WRITE),
+         U.mesh(),
+         dimensionedScalar(dimensionSet(1, -1, -1, 0, 0), 0)),
 
-    nus_
-    (
-        IOobject
-        (
-            IOobject::groupName(typedName("nus"), phase_.name()),
-            U.time().name(),
-            U.mesh(),
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        U.mesh(),
-        dimensionedScalar(dimensionSet(0, 2, -1, 0, 0), 0)
-    ),
+  nuFric_(IOobject(IOobject::groupName(typedName("nuFric"), phase_.name()),
+                   U.time().name(),
+                   U.mesh(),
+                   IOobject::NO_READ,
+                   IOobject::AUTO_WRITE),
+          U.mesh(),
+          dimensionedScalar(dimensionSet(0, 2, -1, 0, 0), 0)),
 
-    pfCoeff_
-    (
-        IOobject
-        (
-            IOobject::groupName(typedName("pfCoeff"), phase_.name()),
-            U.time().name(),
-            U.mesh(),
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        U.mesh(),
-        dimensionedScalar(dimensionSet(1, -3, 0, 0, 0), 0)
-    )
-{}
+  nus_(IOobject(IOobject::groupName(typedName("nus"), phase_.name()),
+                U.time().name(),
+                U.mesh(),
+                IOobject::NO_READ,
+                IOobject::AUTO_WRITE),
+       U.mesh(),
+       dimensionedScalar(dimensionSet(0, 2, -1, 0, 0), 0)),
+
+  pfCoeff_(IOobject(IOobject::groupName(typedName("pfCoeff"), phase_.name()),
+                    U.time().name(),
+                    U.mesh(),
+                    IOobject::NO_READ,
+                    IOobject::AUTO_WRITE),
+           U.mesh(),
+           dimensionedScalar(dimensionSet(1, -3, 0, 0, 0), 0))
+{
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::RASModels::kineticTheoryModel::~kineticTheoryModel()
-{}
+Foam::RASModels::kineticTheoryModel::~kineticTheoryModel() {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 bool Foam::RASModels::kineticTheoryModel::read()
 {
-    if
-    (
-        eddyViscosity<RASModel<phaseCompressible::momentumTransportModel>>::
-        read()
-    )
+    if (eddyViscosity<
+            RASModel<phaseCompressible::momentumTransportModel>>::read())
     {
         const dictionary& coeffDict = this->coeffDict();
         coeffDict.lookup("multiParticles") >> multiParticles_;
         coeffDict.lookup("equilibrium") >> equilibrium_;
         e_.readIfPresent(coeffDict);
-        alphaMinFriction_.readIfPresent(coeffDict);
 
         viscosityModel_->read(coeffDict);
         conductivityModel_->read(coeffDict);
-        radialModel_->read(coeffDict);
         granularPressureModel_->read(coeffDict);
         frictionalStressModel_->read(coeffDict);
 
@@ -312,8 +202,7 @@ bool Foam::RASModels::kineticTheoryModel::read()
 }
 
 
-Foam::tmp<Foam::volScalarField>
-Foam::RASModels::kineticTheoryModel::k() const
+Foam::tmp<Foam::volScalarField> Foam::RASModels::kineticTheoryModel::k() const
 {
     NotImplemented;
     return nut_;
@@ -339,15 +228,10 @@ Foam::RASModels::kineticTheoryModel::omega() const
 Foam::tmp<Foam::volSymmTensorField>
 Foam::RASModels::kineticTheoryModel::R() const
 {
-    return tmp<volSymmTensorField>
-    (
-        volSymmTensorField::New
-        (
-          IOobject::groupName("R", U_.group()),
-          - alpha_*(nut_ + nuFric_)*dev(twoSymm(fvc::grad(U_)))
-          - (alpha_*lambda_*fvc::div(phi_))*symmTensor::I
-        )
-    );
+    return tmp<volSymmTensorField>(volSymmTensorField::New(
+        IOobject::groupName("R", U_.group()),
+        -alpha_ * (nut_ + nuFric_) * dev(twoSymm(fvc::grad(U_)))
+            - (alpha_ * lambda_ * fvc::div(phi_)) * symmTensor::I));
 }
 
 
@@ -356,56 +240,35 @@ Foam::RASModels::kineticTheoryModel::pPrime() const
 {
     const volScalarField& rho = phase_.rho();
 
-    const phaseModel& continuousPhase = this->continuousPhase();    
-    Info << "Continuous and dispersed phases: " << continuousPhase.name() << ", " << phase_.name() << endl;
-    
-    volScalarField alphasMax_ = 0.0*phase_;
-        
-    if ( multiParticles_)
-    {
-        alphasMax_ += phase_.fluid().alfasMax();
-    }
-    else
-    {   
-        alphasMax_ += phase_.alphaMax();
-    }
-    
-    tmp<volScalarField> tpPrime
-    (
-        volScalarField::New
-        (
-            IOobject::groupName("pPrime", U_.group()),
-            Theta_
-           *granularPressureModel_->granularPressureCoeffPrime
-            (
-                phase_,
-                continuousPhase,                
-                radialModel_->g0
-                (
-		    phase_,
+    const phaseSystem& fluid = phase_.fluid();
+    const phaseModel& continuousPhase = this->continuousPhase();
+    Info << "Continuous and dispersed phases: " << continuousPhase.name()
+         << ", " << phase_.name() << endl;
+
+    const volScalarField alphasMax_(phase_.fluid().alfasMax());
+
+
+    tmp<volScalarField> tpPrime(volScalarField::New(
+        IOobject::groupName("pPrime", U_.group()),
+        Theta_
+                * granularPressureModel_->granularPressureCoeffPrime(
+                    phase_,
                     continuousPhase,
-                    alphaMinFriction_,
-                    alphasMax_
-                ),
-                radialModel_->g0prime
-                (
-		    phase_,
-		    continuousPhase,
-                    alphaMinFriction_,
-                    alphasMax_
-                ),
-                rho,
-                e_
-            )
-         +  frictionalStressModel_->frictionalPressurePrime
-            (
+                    fluid.radial().g0(phase_,
+                                      continuousPhase,
+                                      fluid.alphaMinFriction(),
+                                      alphasMax_),
+                    fluid.radial().g0prime(phase_,
+                                           continuousPhase,
+                                           fluid.alphaMinFriction(),
+                                           alphasMax_),
+                    rho,
+                    e_)
+            + frictionalStressModel_->frictionalPressurePrime(
                 phase_,
                 continuousPhase,
-                alphaMinFriction_,
-                alphasMax_
-            )
-        )
-    );
+                fluid.alphaMinFriction(),
+                alphasMax_)));
 
     volScalarField::Boundary& bpPrime = tpPrime.ref().boundaryFieldRef();
 
@@ -424,53 +287,39 @@ Foam::RASModels::kineticTheoryModel::pPrime() const
 Foam::tmp<Foam::surfaceScalarField>
 Foam::RASModels::kineticTheoryModel::pPrimef() const
 {
-    return surfaceScalarField::New
-    (
-        IOobject::groupName("pPrimef", U_.group()),
-        fvc::interpolate(pPrime())
-    );
+    return surfaceScalarField::New(IOobject::groupName("pPrimef", U_.group()),
+                                   fvc::interpolate(pPrime()));
 }
 
 
 Foam::tmp<Foam::surfaceVectorField>
 Foam::RASModels::kineticTheoryModel::devTau() const
 {
-    const surfaceScalarField alphaRhoNuEff(fvc::interpolate(alpha_*rho_*(nut_ + nuFric_)));
+    const surfaceScalarField alphaRhoNuEff(
+        fvc::interpolate(alpha_ * rho_ * (nut_ + nuFric_)));
 
-    return tmp<surfaceVectorField>
-    (
-        surfaceVectorField::New
-        (
-            IOobject::groupName("devTau", U_.group()),
-          - alphaRhoNuEff
-           *(
-               fvc::dotInterpolate(mesh().nf(), dev2(T(fvc::grad(U_))))
-             + fvc::snGrad(U_)
-            )
-          - fvc::interpolate((alpha_*rho_*lambda_)*fvc::div(phi_))*mesh().nf()
-        )
-    );
+    return tmp<surfaceVectorField>(surfaceVectorField::New(
+        IOobject::groupName("devTau", U_.group()),
+        -alphaRhoNuEff
+                * (fvc::dotInterpolate(mesh().nf(), dev2(T(fvc::grad(U_))))
+                   + fvc::snGrad(U_))
+            - fvc::interpolate((alpha_ * rho_ * lambda_) * fvc::div(phi_))
+                  * mesh().nf()));
 }
 
 
 Foam::tmp<Foam::fvVectorMatrix>
-Foam::RASModels::kineticTheoryModel::divDevTau
-(
-    volVectorField& U
-) const
+Foam::RASModels::kineticTheoryModel::divDevTau(volVectorField& U) const
 {
-    const surfaceScalarField alphaRhoNuEff(fvc::interpolate(alpha_*rho_*(nut_ + nuFric_)));
+    const surfaceScalarField alphaRhoNuEff(
+        fvc::interpolate(alpha_ * rho_ * (nut_ + nuFric_)));
 
-    return
-    (
-      - fvc::div
-        (
-            alphaRhoNuEff
-           *fvc::dotInterpolate(mesh().Sf(), dev2(T(fvc::grad(U))))
-          + fvc::interpolate((alpha_*rho_*lambda_)*fvc::div(phi_))*mesh().Sf()
-        )
-      - fvm::laplacian(alphaRhoNuEff, U)
-    );
+    return (
+        -fvc::div(alphaRhoNuEff
+                      * fvc::dotInterpolate(mesh().Sf(), dev2(T(fvc::grad(U))))
+                  + fvc::interpolate((alpha_ * rho_ * lambda_) * fvc::div(phi_))
+                        * mesh().Sf())
+        - fvm::laplacian(alphaRhoNuEff, U));
 }
 
 
@@ -500,200 +349,143 @@ void Foam::RASModels::kineticTheoryModel::correct()
     const volTensorField& gradU(tgradU());
     const volSymmTensorField D(symm(gradU));
 
-    volScalarField alphasMax_ = 0.0*phase_;
+    volScalarField alphasMax_ = 0.0 * phase_;
 
     // Calculating the radial distribution function
 
-        alphasMax_ = phase_.fluid().alfasMax();
-        PtrList<volScalarField> g0list_ = radialModel_->g0(phase_, continuousPhase, alphaMinFriction_, alphasMax_);
-        gs0_ = g0list_[indexi];
-        sumAlphaGs0_ = 0.0*gs0_;
-        forAll(fluid.phases(), phaseIdx)
+    alphasMax_ = phase_.fluid().alfasMax();
+    PtrList<volScalarField> g0list_ = fluid.radial().g0(
+        phase_, continuousPhase, fluid.alphaMinFriction(), alphasMax_);
+    gs0_ = g0list_[indexi];
+    sumAlphaGs0_ = 0.0 * gs0_;
+    forAll(fluid.phases(), phaseIdx)
+    {
+        const phaseModel& phase = fluid.phases()[phaseIdx];
+
+        if (&phase != &continuousPhase)
         {
-            const phaseModel& phase = fluid.phases()[phaseIdx];
-        
-            if (&phase != &continuousPhase)
-            {
-                sumAlphaGs0_ += max(residualAlpha_,phase)*g0list_[phaseIdx];
-            }
-        } 
-        
+            sumAlphaGs0_ += max(residualAlpha_, phase) * g0list_[phaseIdx];
+        }
+    }
+
     const volScalarField alphas = 1.0 - continuousPhase;
 
     // Drag
     const dispersedPhaseInterface interface(phase_, continuousPhase);
-    const volScalarField beta_
-    (
+    const volScalarField beta_(
         fluid.foundInterfacialModel<dragModel>(interface)
-      ? fluid.lookupInterfacialModel<dragModel>(interface).K()
-      : volScalarField::New
-        (
-            "beta_",
-            phase_.mesh(),
-            dimensionedScalar(dragModel::dimK, 0)
-        )
-    );
+            ? fluid.lookupInterfacialModel<dragModel>(interface).K()
+            : volScalarField::New("beta_",
+                                  phase_.mesh(),
+                                  dimensionedScalar(dragModel::dimK, 0)));
 
     if (!equilibrium_)
     {
         const volScalarField ThetaSqrt("sqrtTheta", sqrt(Theta_));
 
-                
-        if ( multiParticles_)
-        {
-            // Particle viscosity (Eqs. B4-B7 MFIX-2012.pdf)
-            nut_ = viscosityModel_->nu(max(residualAlpha_,alpha), 
-                                       Theta_, ThetaSmall, gs0_, sumAlphaGs0_, beta_, rho, da, e_);
-            lambda_ = (4.0/3.0)*da*sumAlphaGs0_*(1 + e_)*ThetaSqrt/sqrtPi;
-        }
-        else
-        {
-            // Particle viscosity (Table 3.2, p.47)
-            nut_ = viscosityModel_->nu(max(residualAlpha_,alpha), 
-                                       Theta_, ThetaSmall, gs0_, beta_, rho, da, e_);
-            // Bulk viscosity  p. 45 (Lun et al. 1984).
-            lambda_ = (4.0/3.0)*da*max(residualAlpha_,alpha)*gs0_*(1 + e_)*ThetaSqrt/sqrtPi;
-        }
-    
+
+        // Particle viscosity (generalised for multi-particle)
+        nut_ = viscosityModel_->nu(max(residualAlpha_, alpha),
+                                   Theta_,
+                                   ThetaSmall,
+                                   gs0_,
+                                   sumAlphaGs0_,
+                                   beta_,
+                                   rho,
+                                   da,
+                                   e_);
+
+        // Bulk viscosity (generalised for multi-particle)
+        lambda_ =
+            (4.0 / 3.0) * da * sumAlphaGs0_ * (1 + e_) * ThetaSqrt / sqrtPi;
+
         // Frictional pressure
-        const volScalarField pf
-        (
-            frictionalStressModel_->frictionalPressure
-            (
-                phase_,
-                continuousPhase,
-                alphaMinFriction_,
-                alphasMax_
-            )
-        );
-        
-        // frictional contribution to the pressure-coefficient in front of Theta   
-        if ( frictInTheta_ )
+        const volScalarField pf(frictionalStressModel_->frictionalPressure(
+            phase_, continuousPhase, fluid.alphaMinFriction(), alphasMax_));
+
+        // frictional contribution to the pressure-coefficient in front of Theta
+        if (frictInTheta_)
         {
             pfCoeff_ = pf / (Theta_ + ThetaSmall);
         }
         else
-        {                 
-            pfCoeff_ = 0.0 * pf / (Theta_ + ThetaSmall);  
+        {
+            pfCoeff_ = 0.0 * pf / (Theta_ + ThetaSmall);
         }
-            
-        // particle pressure - coefficient in front of Theta (Eq. 3.22, p. 45)
-        const volScalarField PsCoeff
-        (
-            ( multiParticles_
-              ? granularPressureModel_->granularPressureCoeff
-                (
-                    phase_,
-                    continuousPhase,
-                    radialModel_->g0(phase_, continuousPhase, alphaMinFriction_, alphasMax_),
-                    rho,
-                    e_
-                )
-              : granularPressureModel_->granularPressureCoeff
-                (
-                    phase_,
-                    continuousPhase,
-                    gs0_,
-                    rho,
-                    e_
-                )
-            )
-            + pfCoeff_          
-        );
 
-        if ( frictInTheta_ )
+
+        // particle pressure - coefficient in front of Theta (Eq. 3.22, p. 45)
+        const volScalarField PsCoeff(
+            granularPressureModel_->granularPressureCoeff(
+                phase_, continuousPhase, g0list_, rho, e_)
+            + pfCoeff_);
+
+        if (frictInTheta_)
         {
             // Limit viscosity
             nut_.min(maxNut_);
-        
-            nuFric_ = min
-            (
-                frictionalStressModel_->nu
-                (
-                    phase_,
-                    continuousPhase,
-                    alphaMinFriction_,
-                    alphasMax_,
-                    pf,
-                    rho,
-                    D
-                ),
-                maxNut_ - nut_
-            );
+
+            nuFric_ = min(frictionalStressModel_->nu(phase_,
+                                                     continuousPhase,
+                                                     fluid.alphaMinFriction(),
+                                                     alphasMax_,
+                                                     pf,
+                                                     rho,
+                                                     D),
+                          maxNut_ - nut_);
             nus_ = nut_ + nuFric_;
         }
         else
         {
-            nus_ = nut_;                  
+            nus_ = nut_;
         }
 
         // Stress tensor, Definitions, Table 3.1, p. 43
-        const volSymmTensorField tau
-        (
-            alpha*rho*(2*nus_*D + (lambda_ - (2.0/3.0)*nus_)*tr(D)*I)               
-        );
+        const volSymmTensorField tau(
+            alpha * rho
+            * (2 * nus_ * D + (lambda_ - (2.0 / 3.0) * nus_) * tr(D) * I));
 
         // Dissipation (Eq. 3.24, p.50)
-        const volScalarField gammaCoeff
-        (
+        const volScalarField gammaCoeff(
             "gammaCoeff",
-            multiParticles_
-            ? 12*(1 - sqr(e_))
-              *rho*max(alpha, residualAlpha_)
-              *sumAlphaGs0_*(1.0/da)*ThetaSqrt/sqrtPi
-            : 12*(1 - sqr(e_))
-              *sqr(max(alpha, residualAlpha_))
-              *rho*gs0_*(1.0/da)*ThetaSqrt/sqrtPi
-        );
+            12 * (1 - sqr(e_)) * rho * max(alpha, residualAlpha_) * sumAlphaGs0_
+                * (1.0 / da) * ThetaSqrt / sqrtPi);
 
         // Eq. 3.25, p. 50 Js = J1 - J2
-        const volScalarField J1("J1", 3*beta_);
-        const volScalarField J2
-        (
-            "J2",
-            0.25*sqr(beta_)*da*magSqr(U - Uc)
-           /(
-               max(alpha, residualAlpha_)*rho
-              *sqrtPi*(ThetaSqrt + ThetaSmallSqrt)
-            )
-        );
+        const volScalarField J1("J1", 3 * beta_);
+        const volScalarField J2("J2",
+                                0.25 * sqr(beta_) * da * magSqr(U - Uc)
+                                    / (max(alpha, residualAlpha_) * rho * sqrtPi
+                                       * (ThetaSqrt + ThetaSmallSqrt)));
 
-        if ( multiParticles_)
-        {
-            // Eqs. B8-B12 MFIX-2012.pdf
-            kappa_ = conductivityModel_->kappa(max(alpha, residualAlpha_), 
-                                               max(residualTheta_,Theta_), gs0_, 
-                                               sumAlphaGs0_, beta_, rho, da, e_);
-        }
-        else
-        {
-            // 'thermal' conductivity (Table 3.3, p. 49)
-            kappa_ = conductivityModel_->kappa(alpha, Theta_, gs0_, beta_, rho, da, e_);
-        }
-        
+        // 'thermal' conductivity (generalised for multi-particle)
+        kappa_ = conductivityModel_->kappa(max(alpha, residualAlpha_),
+                                           max(residualTheta_, Theta_),
+                                           gs0_,
+                                           sumAlphaGs0_,
+                                           beta_,
+                                           rho,
+                                           da,
+                                           e_);
+
         const Foam::fvModels& fvModels(Foam::fvModels::New(mesh_));
-        const Foam::fvConstraints& fvConstraints
-        (
-            Foam::fvConstraints::New(mesh_)
-        );
+        const Foam::fvConstraints& fvConstraints(
+            Foam::fvConstraints::New(mesh_));
 
         // Construct the granular temperature equation (Eq. 3.20, p. 44)
         // NB. note that there are two typos in Eq. 3.20:
         //     Ps should be without grad
         //     the laplacian has the wrong sign
-        fvScalarMatrix ThetaEqn
-        (
-            1.5*(fvm::ddt(alpha, rho, Theta_) + fvm::div(alphaRhoPhi, Theta_))
-          - 0.5*fvm::Sp(fvc::ddt(alpha, rho) + fvc::div(alphaRhoPhi), Theta_)
-          - fvm::laplacian(kappa_, Theta_, "laplacian(kappa,Theta)")
-         ==
-          - fvm::SuSp((PsCoeff*I) && gradU, Theta_)
-          + (tau && gradU)
-          + fvm::Sp(-gammaCoeff, Theta_)
-          + fvm::Sp(-J1, Theta_)
-          + fvm::Sp(J2/(Theta_ + ThetaSmall), Theta_)
-          + fvModels.source(alpha, rho, Theta_)
-        );
+        fvScalarMatrix ThetaEqn(
+            1.5 * (fvm::ddt(alpha, rho, Theta_) + fvm::div(alphaRhoPhi, Theta_))
+                - 0.5
+                      * fvm::Sp(fvc::ddt(alpha, rho) + fvc::div(alphaRhoPhi),
+                                Theta_)
+                - fvm::laplacian(kappa_, Theta_, "laplacian(kappa,Theta)")
+            == -fvm::SuSp((PsCoeff * I) && gradU, Theta_) + (tau && gradU)
+                   + fvm::Sp(-gammaCoeff, Theta_) + fvm::Sp(-J1, Theta_)
+                   + fvm::Sp(J2 / (Theta_ + ThetaSmall), Theta_)
+                   + fvModels.source(alpha, rho, Theta_));
 
         ThetaEqn.relax();
         fvConstraints.constrain(ThetaEqn);
@@ -704,54 +496,44 @@ void Foam::RASModels::kineticTheoryModel::correct()
     {
         // Equilibrium => dissipation == production
         // Eq. 4.14, p.82
-        const volScalarField K1("K1", 2*(1 + e_)*rho*gs0_);
-        const volScalarField K3
-        (
+        const volScalarField K1("K1", 2 * (1 + e_) * rho * gs0_);
+        const volScalarField K3(
             "K3",
-            0.5*da*rho*
-            (
-                (sqrtPi/(3*(3.0 - e_)))
-               *(1 + 0.4*(1 + e_)*(3*e_ - 1)*alpha*gs0_)
-               +1.6*alpha*gs0_*(1 + e_)/sqrtPi
-            )
-        );
+            0.5 * da * rho
+                * ((sqrtPi / (3 * (3.0 - e_)))
+                       * (1 + 0.4 * (1 + e_) * (3 * e_ - 1) * alpha * gs0_)
+                   + 1.6 * alpha * gs0_ * (1 + e_) / sqrtPi));
 
-        const volScalarField K2
-        (
-            "K2",
-            4*da*rho*(1 + e_)*alpha*gs0_/(3*sqrtPi) - 2*K3/3.0
-        );
+        const volScalarField K2("K2",
+                                4 * da * rho * (1 + e_) * alpha * gs0_
+                                        / (3 * sqrtPi)
+                                    - 2 * K3 / 3.0);
 
-        const volScalarField K4("K4", 12*(1 - sqr(e_))*rho*gs0_/(da*sqrtPi));
+        const volScalarField K4(
+            "K4", 12 * (1 - sqr(e_)) * rho * gs0_ / (da * sqrtPi));
 
-        const volScalarField trD
-        (
-            "trD",
-            alpha/(alpha + residualAlpha_)
-           *fvc::div(phi_)
-        );
+        const volScalarField trD(
+            "trD", alpha / (alpha + residualAlpha_) * fvc::div(phi_));
         const volScalarField tr2D("tr2D", sqr(trD));
         const volScalarField trD2("trD2", tr(D & D));
 
-        const volScalarField t1("t1", K1*alpha + rho);
-        const volScalarField l1("l1", -t1*trD);
-        const volScalarField l2("l2", sqr(t1)*tr2D);
-        const volScalarField l3
-        (
-            "l3",
-            4.0
-           *K4
-           *alpha
-           *(2*K3*trD2 + K2*tr2D)
-        );
+        const volScalarField t1("t1", K1 * alpha + rho);
+        const volScalarField l1("l1", -t1 * trD);
+        const volScalarField l2("l2", sqr(t1) * tr2D);
+        const volScalarField l3("l3",
+                                4.0 * K4 * alpha * (2 * K3 * trD2 + K2 * tr2D));
 
-        Theta_ = sqr
-        (
-            (l1 + sqrt(l2 + l3))
-           /(2*max(alpha, residualAlpha_)*K4)
-        );
+        Theta_ =
+            sqr((l1 + sqrt(l2 + l3)) / (2 * max(alpha, residualAlpha_) * K4));
 
-        kappa_ = conductivityModel_->kappa(alpha, Theta_, gs0_, beta_, rho, da, e_);
+        kappa_ = conductivityModel_->kappa(max(alpha, residualAlpha_),
+                                           max(residualTheta_, Theta_),
+                                           gs0_,
+                                           sumAlphaGs0_,
+                                           beta_,
+                                           rho,
+                                           da,
+                                           e_);
     }
 
     Theta_.max(0);
@@ -760,58 +542,40 @@ void Foam::RASModels::kineticTheoryModel::correct()
     {
         const volScalarField ThetaSqrt("sqrtTheta", sqrt(Theta_));
 
-        if ( multiParticles_)
-        {
-            nut_ = viscosityModel_->nu(max(residualAlpha_,alpha), 
-                                       Theta_, ThetaSmall, gs0_, sumAlphaGs0_, beta_, rho, da, e_);
-            lambda_ = (4.0/3.0)*da*sumAlphaGs0_*(1 + e_)*ThetaSqrt/sqrtPi;
-        }
-        else
-        {
-            // Particle viscosity (Table 3.2, p.47)
-            nut_ = viscosityModel_->nu(max(residualAlpha_,alpha), 
-                                       Theta_, ThetaSmall, gs0_, beta_, rho, da, e_);
-            // Bulk viscosity  p. 45 (Lun et al. 1984).
-            lambda_ = (4.0/3.0)*da*max(residualAlpha_,alpha)*gs0_*(1 + e_)*ThetaSqrt/sqrtPi;
-        }
+        nut_ = viscosityModel_->nu(max(residualAlpha_, alpha),
+                                   Theta_,
+                                   ThetaSmall,
+                                   gs0_,
+                                   sumAlphaGs0_,
+                                   beta_,
+                                   rho,
+                                   da,
+                                   e_);
+        lambda_ =
+            (4.0 / 3.0) * da * sumAlphaGs0_ * (1 + e_) * ThetaSqrt / sqrtPi;
         // Frictional pressure
-        const volScalarField pf
-        (
-            frictionalStressModel_->frictionalPressure
-            (
-                phase_,
-                continuousPhase,
-                alphaMinFriction_,
-                alphasMax_
-            )
-        );
+        const volScalarField pf(frictionalStressModel_->frictionalPressure(
+            phase_, continuousPhase, fluid.alphaMinFriction(), alphasMax_));
 
         // Limit viscosity
         nut_.min(maxNut_);
 
-        nuFric_ = min
-        (
-            frictionalStressModel_->nu
-            (
-                phase_,
-                continuousPhase,
-                alphaMinFriction_,
-                alphasMax_,
-                pf,
-                rho,
-                D
-            ),
-            maxNut_ - nut_
-        );
+        nuFric_ = min(frictionalStressModel_->nu(phase_,
+                                                 continuousPhase,
+                                                 fluid.alphaMinFriction(),
+                                                 alphasMax_,
+                                                 pf,
+                                                 rho,
+                                                 D),
+                      maxNut_ - nut_);
     }
 
     if (debug)
     {
-        Info<< typeName << ':' << nl
-            << "    max(Theta) = " << max(Theta_).value() << nl
-            << "    max(nut) = " << max(nut_).value() << endl;
+        Info << typeName << ':' << nl
+             << "    max(Theta) = " << max(Theta_).value() << nl
+             << "    max(nut) = " << max(nut_).value() << endl;
     }
 }
 
 //**********************************************************************//
-

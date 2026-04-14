@@ -31,32 +31,22 @@ License
 
 namespace Foam
 {
-    makePatchTypeField
-    (
-        fvPatchScalarField,
-        JohnsonJacksonParticleThetaFvPatchScalarField
-    );
+makePatchTypeField(fvPatchScalarField,
+                   JohnsonJacksonParticleThetaFvPatchScalarField);
 }
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 Foam::JohnsonJacksonParticleThetaFvPatchScalarField::
-JohnsonJacksonParticleThetaFvPatchScalarField
-(
-    const fvPatch& p,
-    const DimensionedField<scalar, volMesh>& iF,
-    const dictionary& dict
-)
-:
-    mixedFvPatchScalarField(p, iF, dict, false),
-    restitutionCoefficient_
-    (
-        dict.lookup<scalar>("restitutionCoefficient", unitFraction)
-    ),
-    specularityCoefficient_
-    (
-        dict.lookup<scalar>("specularityCoefficient", unitFraction)
-    )
+    JohnsonJacksonParticleThetaFvPatchScalarField(
+        const fvPatch& p,
+        const DimensionedField<scalar, volMesh>& iF,
+        const dictionary& dict)
+: mixedFvPatchScalarField(p, iF, dict, false),
+  restitutionCoefficient_(
+      dict.lookup<scalar>("restitutionCoefficient", unitFraction)),
+  specularityCoefficient_(
+      dict.lookup<scalar>("specularityCoefficient", unitFraction))
 {
     if (restitutionCoefficient_ < 0 || restitutionCoefficient_ > 1)
     {
@@ -72,40 +62,33 @@ JohnsonJacksonParticleThetaFvPatchScalarField
             << abort(FatalError);
     }
 
-    fvPatchScalarField::operator=
-    (
-        scalarField("value", iF.dimensions(), dict, p.size())
-    );
+    fvPatchScalarField::operator=(
+        scalarField("value", iF.dimensions(), dict, p.size()));
 }
 
 
 Foam::JohnsonJacksonParticleThetaFvPatchScalarField::
-JohnsonJacksonParticleThetaFvPatchScalarField
-(
-    const JohnsonJacksonParticleThetaFvPatchScalarField& ptf,
-    const fvPatch& p,
-    const DimensionedField<scalar, volMesh>& iF,
-    const fieldMapper& mapper
-)
-:
-    mixedFvPatchScalarField(ptf, p, iF, mapper),
-    restitutionCoefficient_(ptf.restitutionCoefficient_),
-    specularityCoefficient_(ptf.specularityCoefficient_)
+    JohnsonJacksonParticleThetaFvPatchScalarField(
+        const JohnsonJacksonParticleThetaFvPatchScalarField& ptf,
+        const fvPatch& p,
+        const DimensionedField<scalar, volMesh>& iF,
+        const fieldMapper& mapper)
+: mixedFvPatchScalarField(ptf, p, iF, mapper),
+  restitutionCoefficient_(ptf.restitutionCoefficient_),
+  specularityCoefficient_(ptf.specularityCoefficient_)
 {
 }
 
 
 Foam::JohnsonJacksonParticleThetaFvPatchScalarField::
-JohnsonJacksonParticleThetaFvPatchScalarField
-(
-    const JohnsonJacksonParticleThetaFvPatchScalarField& ptf,
-    const DimensionedField<scalar, volMesh>& iF
-)
-:
-    mixedFvPatchScalarField(ptf, iF),
-    restitutionCoefficient_(ptf.restitutionCoefficient_),
-    specularityCoefficient_(ptf.specularityCoefficient_)
-{}
+    JohnsonJacksonParticleThetaFvPatchScalarField(
+        const JohnsonJacksonParticleThetaFvPatchScalarField& ptf,
+        const DimensionedField<scalar, volMesh>& iF)
+: mixedFvPatchScalarField(ptf, iF),
+  restitutionCoefficient_(ptf.restitutionCoefficient_),
+  specularityCoefficient_(ptf.specularityCoefficient_)
+{
+}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
@@ -121,76 +104,51 @@ void Foam::JohnsonJacksonParticleThetaFvPatchScalarField::updateCoeffs()
     const phaseSystem& fluid =
         db().lookupObject<phaseSystem>(phaseSystem::propertiesName);
 
-    const phaseModel& phase
-    (
-        fluid.phases()[internalField().group()]
-    );
+    const phaseModel& phase(fluid.phases()[internalField().group()]);
 
     // lookup all the fields on this patch
-    const fvPatchScalarField& alpha
-    (
-        patch().lookupPatchField<volScalarField, scalar>
-        (
-            phase.volScalarField::name()
-        )
-    );
+    const fvPatchScalarField& alpha(
+        patch().lookupPatchField<volScalarField, scalar>(
+            phase.volScalarField::name()));
 
-    const fvPatchVectorField& U
-    (
-        patch().lookupPatchField<volVectorField, vector>
-        (
-            IOobject::groupName("U", phase.name())
-        )
-    );
+    const fvPatchVectorField& U(
+        patch().lookupPatchField<volVectorField, vector>(
+            IOobject::groupName("U", phase.name())));
 
-    const fvPatchScalarField& gs0
-    (
-        patch().lookupPatchField<volScalarField, scalar>
-        (
-            IOobject::groupName
-            (
-                Foam::typedName<RASModels::kineticTheoryModel>("gs0"),
-                phase.name()
-            )
-        )
-    );
+    // lookup the multi-solid crowding term
+    // Sigma_s = sum_j(alpha_j*g0_sj)
+    const fvPatchScalarField& sumAlphaGs0(
+        patch().lookupPatchField<volScalarField, scalar>(IOobject::groupName(
+            Foam::typedName<RASModels::kineticTheoryModel>("sumAlphaGs0"),
+            phase.name())));
 
-    const fvPatchScalarField& kappa
-    (
-        patch().lookupPatchField<volScalarField, scalar>
-        (
-            IOobject::groupName
-            (
-                Foam::typedName<RASModels::kineticTheoryModel>("kappa"),
-                phase.name()
-            )
-        )
-    );
+    const fvPatchScalarField& kappa(
+        patch().lookupPatchField<volScalarField, scalar>(IOobject::groupName(
+            Foam::typedName<RASModels::kineticTheoryModel>("kappa"),
+            phase.name())));
+
+    // compute the total maximum packing field for the solid mixture
+    const tmp<volScalarField> talfasMax(fluid.alfasMax());
+
+    // extract the patch field of the total maximum packing
+    const fvPatchScalarField& alfasMax(refCast<const fvPatchScalarField>(
+        talfasMax().boundaryField()[patch().index()]));
 
     const scalarField Theta(patchInternalField());
 
     // calculate the reference value and the value fraction
     if (restitutionCoefficient_ != 1.0)
     {
-        this->refValue() =
-            (2.0/3.0)
-           *specularityCoefficient_
-           *magSqr(U)
-           /(scalar(1) - sqr(restitutionCoefficient_));
+        this->refValue() = (2.0 / 3.0) * specularityCoefficient_ * magSqr(U)
+                         / (scalar(1) - sqr(restitutionCoefficient_));
 
         this->refGrad() = 0.0;
 
-        scalarField c
-        (
-             constant::mathematical::pi
-            *alpha
-            *gs0
-            *(scalar(1) - sqr(restitutionCoefficient_))
-            *sqrt(3*Theta)
-            /max(4*kappa*phase.alphaMax(), small)
-        );
+        scalarField c(constant::mathematical::pi * sumAlphaGs0
+                      * (scalar(1) - sqr(restitutionCoefficient_))
+                      * sqrt(3 * Theta) / max(4 * kappa * alfasMax, small));
 
-        this->valueFraction() = c/(c + patch().deltaCoeffs());
+        this->valueFraction() = c / (c + patch().deltaCoeffs());
     }
 
     // for a restitution coefficient of 1, the boundary degenerates to a fixed
@@ -199,15 +157,10 @@ void Foam::JohnsonJacksonParticleThetaFvPatchScalarField::updateCoeffs()
     {
         this->refValue() = 0.0;
 
-        this->refGrad() =
-            pos0(alpha - small)
-           *constant::mathematical::pi
-           *specularityCoefficient_
-           *alpha
-           *gs0
-           *sqrt(3*Theta)
-           *magSqr(U)
-           /max(6*kappa*phase.alphaMax(), small);
+        this->refGrad() = pos0(alpha - small) * constant::mathematical::pi
+                        * specularityCoefficient_ * sumAlphaGs0
+                        * sqrt(3 * Theta) * magSqr(U)
+                        / max(6 * kappa * alfasMax, small);
 
         this->valueFraction() = 0;
     }
@@ -216,10 +169,8 @@ void Foam::JohnsonJacksonParticleThetaFvPatchScalarField::updateCoeffs()
 }
 
 
-void Foam::JohnsonJacksonParticleThetaFvPatchScalarField::write
-(
-    Ostream& os
-) const
+void Foam::JohnsonJacksonParticleThetaFvPatchScalarField::write(
+    Ostream& os) const
 {
     fvPatchScalarField::write(os);
     writeEntry(os, "restitutionCoefficient", restitutionCoefficient_);

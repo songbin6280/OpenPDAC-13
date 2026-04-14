@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -49,21 +50,18 @@ namespace granularPressureModels
                              Class Lun Declaration
 \*---------------------------------------------------------------------------*/
 
-class Lun
-:
-    public granularPressureModel
+class Lun : public granularPressureModel
 {
 
 public:
-
     //- Runtime type information
     TypeName("Lun");
 
 
     // Constructors
 
-        //- Construct from the coefficients dictionary
-        Lun(const dictionary& coeffDict);
+    //- Construct from the coefficients dictionary
+    Lun(const dictionary& coeffDict);
 
 
     //- Destructor
@@ -72,43 +70,20 @@ public:
 
     // Member Functions
 
-        tmp<volScalarField> granularPressureCoeff
-        (
-            const volScalarField& alpha1,
-            const phaseModel& continuousPhase,
-            const volScalarField& g0,
-            const volScalarField& rho1,
-            const dimensionedScalar& e
-        ) const;
+    tmp<volScalarField>
+    granularPressureCoeff(const phaseModel& phase1,
+                          const phaseModel& continuousPhase,
+                          const PtrList<volScalarField>& g0,
+                          const volScalarField& rho1,
+                          const dimensionedScalar& e) const override;
 
-        tmp<volScalarField> granularPressureCoeffPrime
-        (
-            const volScalarField& alpha1,
-            const phaseModel& continuousPhase,
-            const volScalarField& g0,
-            const volScalarField& g0prime,
-            const volScalarField& rho1,
-            const dimensionedScalar& e
-        ) const;
-        
-        tmp<volScalarField> granularPressureCoeff
-        (
-            const phaseModel& phase1,
-            const phaseModel& continuousPhase,
-            const PtrList<volScalarField>& g0,
-            const volScalarField& rho1,
-            const dimensionedScalar& e
-        ) const;
-
-        tmp<volScalarField> granularPressureCoeffPrime
-        (
-            const phaseModel& phase1,
-            const phaseModel& continuousPhase,
-            const PtrList<volScalarField>& g0,
-            const PtrList<volScalarField>& g0prime,
-            const volScalarField& rho1,
-            const dimensionedScalar& e
-        ) const;        
+    tmp<volScalarField>
+    granularPressureCoeffPrime(const phaseModel& phase1,
+                               const phaseModel& continuousPhase,
+                               const PtrList<volScalarField>& g0,
+                               const PtrList<volScalarField>& g0prime,
+                               const volScalarField& rho1,
+                               const dimensionedScalar& e) const override;
 };
 
 

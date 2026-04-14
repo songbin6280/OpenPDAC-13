@@ -33,7 +33,7 @@ void Foam::solvers::OpenPDAC::pressureCorrector()
 
     if (forceFinalPimpleIter_ && !pimple.finalIter())
     {
-        // Non fare nulla, la funzione è stata svuotata in questa iterazione.
+        // Do nothing, this iteration is being skipped.
         return;
     }
 

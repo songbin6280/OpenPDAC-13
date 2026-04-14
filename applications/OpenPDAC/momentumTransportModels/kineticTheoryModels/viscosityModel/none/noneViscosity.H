@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -49,21 +50,18 @@ namespace viscosityModels
                         Class noneViscosity Declaration
 \*---------------------------------------------------------------------------*/
 
-class none
-:
-    public viscosityModel
+class none : public viscosityModel
 {
 
 public:
-
     //- Runtime type information
     TypeName("none");
 
 
     // Constructors
 
-        //- Construct from the coefficients dictionary
-        none(const dictionary& coeffDict);
+    //- Construct from the coefficients dictionary
+    none(const dictionary& coeffDict);
 
 
     //- Destructor
@@ -72,30 +70,15 @@ public:
 
     // Member Functions
 
-        tmp<volScalarField> nu
-        (
-            const volScalarField& alpha1,
-            const volScalarField& Theta,
-            const dimensionedScalar& ThetaSmall,
-            const volScalarField& g0,
-            const volScalarField& beta,
-            const volScalarField& rho1,
-            const volScalarField& da,
-            const dimensionedScalar& e
-        ) const;
-        
-        tmp<volScalarField> nu
-        (
-            const volScalarField& alpha1,
-            const volScalarField& Theta,
-            const dimensionedScalar& ThetaSmall,
-            const volScalarField& g0,
-            const volScalarField& sumAlphaGs0,
-            const volScalarField& beta,
-            const volScalarField& rho1,
-            const volScalarField& da,
-            const dimensionedScalar& e
-        ) const;        
+    tmp<volScalarField> nu(const volScalarField& alpha1,
+                           const volScalarField& Theta,
+                           const dimensionedScalar& ThetaSmall,
+                           const volScalarField& g0,
+                           const volScalarField& sumAlphaGs0,
+                           const volScalarField& beta,
+                           const volScalarField& rho1,
+                           const volScalarField& da,
+                           const dimensionedScalar& e) const;
 };
 
 

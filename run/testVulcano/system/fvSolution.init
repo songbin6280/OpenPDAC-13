@@ -27,7 +27,7 @@ solvers
         implicitPhasePressure yes;
         solver          smoothSolver;
         smoother        symGaussSeidel;
-        tolerance       1e-9;
+        tolerance       1e-10;
         relTol          0;
         minIter         1;
     }
@@ -35,7 +35,8 @@ solvers
     p_rgh
     {
         solver          GAMG;
-        smoother        DIC;
+        smoother        GaussSeidel;
+        // smoother        DIC;
         nPreSweeps      0;
         nPostSweeps     2;
         nFinestSweeps   2;

@@ -77,6 +77,13 @@ blending
     }
 }
 
+kineticProperties
+{
+    radialModel         CarnahanStarling;
+    alphaMinFriction    0.5;
+    alphasThreshold     1e-3;
+}
+
 surfaceTension
 {}
 

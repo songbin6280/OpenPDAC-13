@@ -29,7 +29,7 @@ solvers
         smoother        symGaussSeidel;
         tolerance       1e-10;
         relTol          0;
-        minIter         2;
+        minIter         1;
     }
 
     p_rgh
@@ -46,7 +46,7 @@ solvers
         mergeLevels     1;
         tolerance       1e-8;
         relTol          0;
-        minIter         2;
+        minIter         1;
     }
 
     p_rghFinal
@@ -84,21 +84,21 @@ solvers
     {
         solver          PBiCGStab;
         preconditioner  DILU;
-        tolerance       1e-8;
+        tolerance       1e-7;
         relTol          0.01;
         maxIter         100;
-        minIter         2;
+        minIter         0;
 
     }
 
-    "Theta.*"
+   "Theta.*"
     {
-        solver          smoothSolver;
-        smoother        symGaussSeidel;
+        solver          PBiCGStab;
+        preconditioner  DILU;
         tolerance       1e-6;
         relTol          0;
-        minIter         2;
     }
+
 
     "(k|epsilon).*"
     {
@@ -116,22 +116,29 @@ solvers
         tolerance       1e-8;
         relTol          0.01;
         maxIter         100;
-        minIter         2;
+        minIter         0;
     }
 
 }
 
 PIMPLE
 {
+    // p_rgh eqn parameters
     nOuterCorrectors    10;
     nCorrectors         5;
     innerResidual       1e-7;
     nNonOrthogonalCorrectors 3;
     nonOrthogonalResidual 1e-8;
-    nEnergyCorrectors   10;
+    residualRatio 0.99;
+    lowPressureTimestepCorrection false;
+
+    // energy eqns parameters
+    nEnergyCorrectors   3;
+    nMaxEnergyCorrectors 20;
+    useAitkenRelaxation yes;
+
     hydrostaticInitialisation false;
     nHydrostaticCorrectors 20;
-    lowPressureTimestepCorrection false;
     faceMomentum        yes;
     dragCorrection      yes;
     dragEnergyCorrection yes;
@@ -163,11 +170,18 @@ PIMPLE
 
 relaxationFactors
 {
+    fields
+    {
+        p_rgh           0.3; // Rilassamento forte per la pressione
+    }
     equations
     {
-        ".*"            1;
+        "U.*"               0.7; // Rilassamento per la velocità
+        "(h|e).*"       0.7; // Rilassamento per l'energia/entalpia
+        "(k|epsilon).*" 0.7; // Buona pratica: rilassare anche la turbolenza
     }
 }
+
 
 
 // ************************************************************************* //

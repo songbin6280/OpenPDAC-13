@@ -74,15 +74,18 @@ void Foam::solvers::OpenPDAC::compositionPredictor()
 
 void Foam::solvers::OpenPDAC::energyPredictor()
 {
+    // Retrieve heat transfer matrices from the heat transfer system
     autoPtr<HashPtrTable<fvScalarMatrix>> heatTransferPtr =
         heatTransferSystem_.heatTransfer();
     HashPtrTable<fvScalarMatrix>& heatTransfer = heatTransferPtr();
 
+    // Read switches for drag energy correction
     const bool dragEnergyCorrection =
         pimple.dict().lookupOrDefault<Switch>("dragEnergyCorrection", false);
     const bool totalEnergy =
         pimple.dict().lookupOrDefault<Switch>("totalEnergy", false);
 
+    // Iterate over all thermal phases to solve their energy equations
     forAll(fluid.thermalPhases(), thermalPhasei)
     {
         phaseModel& phase = fluid_.thermalPhases()[thermalPhasei];
@@ -90,15 +93,19 @@ void Foam::solvers::OpenPDAC::energyPredictor()
         const volScalarField& alpha = phase;
         const volScalarField& rho = phase.rho();
 
+        // Construct the energy equation
+        // Includes heat transfer between phases and fvModels sources
         fvScalarMatrix EEqn(
             phase.heEqn()
             == *heatTransfer[phase.name()]
                    + fvModels().source(alpha, rho, phase.thermo().he()));
 
+        // Apply drag energy correction if enabled
         if (dragEnergyCorrection)
         {
             if (totalEnergy)
             {
+                // Include kinetic energy transfer due to drag
                 PtrList<volScalarField> dragEnergyTransfers(
                     movingPhases.size());
                 momentumTransferSystem_.dragEnergy(dragEnergyTransfers);
@@ -106,6 +113,7 @@ void Foam::solvers::OpenPDAC::energyPredictor()
             }
             else
             {
+                // Include frictional dissipation heating due to drag
                 PtrList<volScalarField> dragDissipations(movingPhases.size());
                 momentumTransferSystem_.dragDissipation(dragDissipations);
                 EEqn -= dragDissipations[thermalPhasei];
@@ -113,15 +121,18 @@ void Foam::solvers::OpenPDAC::energyPredictor()
         }
 
 
+        // Relax, constrain and solve the energy equation
         EEqn.relax();
         fvConstraints().constrain(EEqn);
         EEqn.solve();
         fvConstraints().constrain(phase.thermo().he());
     }
 
+    // Update thermodynamic properties based on new enthalpy/temperature
     fluid_.correctThermo();
 
     // Initialize dmdts with zeros (no mass transfer)
+    // This is required for continuity error correction
     PtrList<volScalarField::Internal> dmdts(fluid.phases().size());
     forAll(dmdts, i)
     {
@@ -132,6 +143,7 @@ void Foam::solvers::OpenPDAC::energyPredictor()
                       dimensionedScalar(dimDensity / dimTime, 0)));
     }
 
+    // Correct continuity errors using the initialized mass transfer rates
     fluid_.correctContinuityError(dmdts);
 }
 
@@ -179,11 +191,22 @@ void Foam::solvers::OpenPDAC::thermophysicalPredictor()
         forAll(fluid.thermalPhases(), thermalPhasei)
         {
             const phaseModel& phase = fluid.thermalPhases()[thermalPhasei];
+            volScalarField& heNew =
+                const_cast<volScalarField&>(phase.thermo().he());
 
-            if ((&phase != &continuousPhase) && correctTdispersed)
+            if (&phase == &continuousPhase)
             {
-                volScalarField& heNew =
-                    const_cast<volScalarField&>(phase.thermo().he());
+                // For the continuous phase, clip negative enthalpy to a minimum
+                // physical value to prevent crashes from non-physical T.
+                volScalarField Tmin(continuousPhase.thermo().T());
+                Tmin = dimensionedScalar(dimTemperature, 273.0);
+                volScalarField heMin = phase.thermo().he(p_, Tmin);
+
+                heNew =
+                    pos(heNew - heMin) * heNew + neg0(heNew - heMin) * heMin;
+            }
+            else if (correctTdispersed) // This is a dispersed phase
+            {
                 volScalarField heTcont =
                     phase.thermo().he(p_, continuousPhase.thermo().T());
 

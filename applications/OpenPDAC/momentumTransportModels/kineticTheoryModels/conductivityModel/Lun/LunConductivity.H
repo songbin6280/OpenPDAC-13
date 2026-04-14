@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -49,21 +50,18 @@ namespace conductivityModels
                           Class Lun Declaration
 \*---------------------------------------------------------------------------*/
 
-class Lun
-:
-    public conductivityModel
+class Lun : public conductivityModel
 {
 
 public:
-
-        //- Runtime type information
-        TypeName("Lun");
+    //- Runtime type information
+    TypeName("Lun");
 
 
     // Constructors
 
-        //- Construct from the coefficients dictionary
-        Lun(const dictionary& coeffDict);
+    //- Construct from the coefficients dictionary
+    Lun(const dictionary& coeffDict);
 
 
     //- Destructor
@@ -72,28 +70,14 @@ public:
 
     // Member Functions
 
-        tmp<volScalarField> kappa
-        (
-            const volScalarField& alpha1,
-            const volScalarField& Theta,
-            const volScalarField& g0,
-            const volScalarField& beta,
-            const volScalarField& rho1,
-            const volScalarField& da,
-            const dimensionedScalar& e
-        ) const;
-
-        tmp<volScalarField> kappa
-        (
-            const volScalarField& alpha1,
-            const volScalarField& Theta,
-            const volScalarField& g0,
-            const volScalarField& sumAlphaGs0,
-            const volScalarField& beta,
-            const volScalarField& rho1,
-            const volScalarField& da,
-            const dimensionedScalar& e
-        ) const;
+    tmp<volScalarField> kappa(const volScalarField& alpha1,
+                              const volScalarField& Theta,
+                              const volScalarField& g0,
+                              const volScalarField& sumAlphaGs0,
+                              const volScalarField& beta,
+                              const volScalarField& rho1,
+                              const volScalarField& da,
+                              const dimensionedScalar& e) const;
 };
 
 

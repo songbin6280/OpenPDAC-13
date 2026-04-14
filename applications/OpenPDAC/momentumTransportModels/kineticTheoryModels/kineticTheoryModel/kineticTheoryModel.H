@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -68,186 +69,171 @@ namespace RASModels
 \*---------------------------------------------------------------------------*/
 
 class kineticTheoryModel
-:
-    public eddyViscosity<RASModel<phaseCompressible::momentumTransportModel>>
+: public eddyViscosity<RASModel<phaseCompressible::momentumTransportModel>>
 {
     // Private Data
 
-        const phaseModel& phase_;
+    const phaseModel& phase_;
 
-        //- Name of the continuous phase
-        word continuousPhaseName_;
-        
-        // Sub-models
+    //- Name of the continuous phase
+    word continuousPhaseName_;
 
-            //- Run-time selected viscosity model
-            autoPtr<kineticTheoryModels::viscosityModel> viscosityModel_;
+    // Sub-models
 
-            //- Run-time selected conductivity model
-            autoPtr<kineticTheoryModels::conductivityModel> conductivityModel_;
+    //- Run-time selected viscosity model
+    autoPtr<kineticTheoryModels::viscosityModel> viscosityModel_;
 
-            //- Run-time selected radial distribution model
-            autoPtr<kineticTheoryModels::radialModel> radialModel_;
+    //- Run-time selected conductivity model
+    autoPtr<kineticTheoryModels::conductivityModel> conductivityModel_;
 
-            //- Run-time selected granular pressure model
-            autoPtr<kineticTheoryModels::granularPressureModel>
-                granularPressureModel_;
+    //- Run-time selected granular pressure model
+    autoPtr<kineticTheoryModels::granularPressureModel> granularPressureModel_;
 
-            //- Run-time selected frictional stress model
-            autoPtr<kineticTheoryModels::frictionalStressModel>
-                frictionalStressModel_;
+    //- Run-time selected frictional stress model
+    autoPtr<kineticTheoryModels::frictionalStressModel> frictionalStressModel_;
 
-            //  switch for frictional regime in granular temperature equation 
-            Switch frictInTheta_;
+    //  switch for frictional regime in granular temperature equation
+    Switch frictInTheta_;
 
-            //  switch for modified formulation 
-            //- Use multiparticle formulation
-            Switch multiParticles_;
+    //  switch for modified formulation
+    //- Use multiparticle formulation
+    Switch multiParticles_;
 
 
-        // Kinetic Theory Model coefficients
+    // Kinetic Theory Model coefficients
 
-            //- Use equilibrium approximation: generation == dissipation
-            Switch equilibrium_;
+    //- Use equilibrium approximation: generation == dissipation
+    Switch equilibrium_;
 
-            //- Coefficient of restitution
-            dimensionedScalar e_;
+    //- Coefficient of restitution
+    dimensionedScalar e_;
 
-            //- Min value for which the frictional stresses are zero
-            dimensionedScalar alphaMinFriction_;
+    //- Residual phase fraction
+    dimensionedScalar residualAlpha_;
 
-            //- Residual phase fraction
-            dimensionedScalar residualAlpha_;
+    //- Maximum turbulent viscosity
+    dimensionedScalar maxNut_;
 
-            //- Maximum turbulent viscosity
-            dimensionedScalar maxNut_;
+    //- Residual phase fraction
+    dimensionedScalar residualTheta_;
 
-            //- Residual phase fraction
-            dimensionedScalar residualTheta_;
+    // Kinetic Theory Model Fields
 
-        // Kinetic Theory Model Fields
+    //- The granular energy/temperature
+    volScalarField Theta_;
 
-            //- The granular energy/temperature
-            volScalarField Theta_;
+    //- The granular bulk viscosity
+    volScalarField lambda_;
 
-            //- The granular bulk viscosity
-            volScalarField lambda_;
+    //- The granular radial distribution
+    volScalarField gs0_;
 
-            //- The granular radial distribution
-            volScalarField gs0_;
+    //- The total granular radial distribution
+    volScalarField sumAlphaGs0_;
 
-            //- The total granular radial distribution
-            volScalarField sumAlphaGs0_;
+    //- The granular "thermal" conductivity
+    volScalarField kappa_;
 
-            //- The granular "thermal" conductivity
-            volScalarField kappa_;
+    //- The frictional viscosity
+    volScalarField nuFric_;
 
-            //- The frictional viscosity
-            volScalarField nuFric_;
+    //- The total solid viscosity
+    volScalarField nus_;
 
-            //- The total solid viscosity
-            volScalarField nus_;
-
-            //- The total solid viscosity
-            volScalarField pfCoeff_;
+    //- The total solid viscosity
+    volScalarField pfCoeff_;
 
 
     // Private Member Functions
 
-        void correctNut()
-        {}
+    void correctNut() {}
 
-        //- Return the continuous phase model
-        //  which for two-phases is the "other" phase
-        //  and for more than two phases must be specified
-        const phaseModel& continuousPhase() const;
+    //- Return the continuous phase model
+    //  which for two-phases is the "other" phase
+    //  and for more than two phases must be specified
+    const phaseModel& continuousPhase() const;
 
-        //- Return the phase-pressure'
-        // (derivative of phase-pressure w.r.t. phase-fraction)
-        tmp<volScalarField> pPrime() const;
+    //- Return the phase-pressure'
+    // (derivative of phase-pressure w.r.t. phase-fraction)
+    tmp<volScalarField> pPrime() const;
 
 
 public:
-
     //- Runtime type information
     TypeName("kineticTheory");
 
 
     // Constructors
 
-        //- Construct from components
-        kineticTheoryModel
-        (
-            const volScalarField& alpha,
-            const volScalarField& rho,
-            const volVectorField& U,
-            const surfaceScalarField& alphaRhoPhi,
-            const surfaceScalarField& phi,
-            const viscosity& viscosity,
-            const word& type = typeName
-        );
+    //- Construct from components
+    kineticTheoryModel(const volScalarField& alpha,
+                       const volScalarField& rho,
+                       const volVectorField& U,
+                       const surfaceScalarField& alphaRhoPhi,
+                       const surfaceScalarField& phi,
+                       const viscosity& viscosity,
+                       const word& type = typeName);
 
-        //- Disallow default bitwise copy construction
-        kineticTheoryModel(const kineticTheoryModel&) = delete;
+    //- Disallow default bitwise copy construction
+    kineticTheoryModel(const kineticTheoryModel&) = delete;
 
     //- Return the radial distribution function at contact
-    const volScalarField& gs0() const
-    {
-        return gs0_;
-    }
+    const volScalarField& gs0() const { return gs0_; }
 
-  
+    //- Return the multi-solid crowding term Sigma_s = sum_j(alpha_j*g0_sj)
+    const volScalarField& sumAlphaGs0() const { return sumAlphaGs0_; }
+
+    //- Return the continuous phase associated with this kinetic-theory model
+    const phaseModel& continuousPhaseModel() const { return continuousPhase(); }
+
     //- Destructor
     virtual ~kineticTheoryModel();
 
 
     // Member Functions
 
-        //- Re-read model coefficients if they have changed
-        virtual bool read();
+    //- Re-read model coefficients if they have changed
+    virtual bool read();
 
-        //- Return the effective viscosity
-        virtual tmp<volScalarField> nuEff() const
-        {
-            return this->nut();
-        }
+    //- Return the effective viscosity
+    virtual tmp<volScalarField> nuEff() const { return this->nut(); }
 
-        //- Return the effective viscosity on patch
-        virtual tmp<scalarField> nuEff(const label patchi) const
-        {
-            return this->nut(patchi);
-        }
+    //- Return the effective viscosity on patch
+    virtual tmp<scalarField> nuEff(const label patchi) const
+    {
+        return this->nut(patchi);
+    }
 
-        //- Return the turbulence kinetic energy
-        virtual tmp<volScalarField> k() const;
+    //- Return the turbulence kinetic energy
+    virtual tmp<volScalarField> k() const;
 
-        //- Return the turbulence kinetic energy dissipation rate
-        virtual tmp<volScalarField> epsilon() const;
+    //- Return the turbulence kinetic energy dissipation rate
+    virtual tmp<volScalarField> epsilon() const;
 
-        //- Return the turbulence specific dissipation rate
-        virtual tmp<volScalarField> omega() const;
+    //- Return the turbulence specific dissipation rate
+    virtual tmp<volScalarField> omega() const;
 
-        //- Return the stress tensor [m^2/s^2]
-        virtual tmp<volSymmTensorField> R() const;
+    //- Return the stress tensor [m^2/s^2]
+    virtual tmp<volSymmTensorField> R() const;
 
-        //- Return the face-phase-pressure'
-        // (derivative of phase-pressure w.r.t. phase-fraction)
-        virtual tmp<surfaceScalarField> pPrimef() const;
+    //- Return the face-phase-pressure'
+    // (derivative of phase-pressure w.r.t. phase-fraction)
+    virtual tmp<surfaceScalarField> pPrimef() const;
 
-        //- Return the effective stress
-        virtual tmp<surfaceVectorField> devTau() const;
+    //- Return the effective stress
+    virtual tmp<surfaceVectorField> devTau() const;
 
-        //- Return the source term for the momentum equation
-        virtual tmp<fvVectorMatrix> divDevTau(volVectorField& U) const;
+    //- Return the source term for the momentum equation
+    virtual tmp<fvVectorMatrix> divDevTau(volVectorField& U) const;
 
-        //- Solve the kinetic theory equations and correct the viscosity
-        virtual void correct();
+    //- Solve the kinetic theory equations and correct the viscosity
+    virtual void correct();
 
 
     // Member Operators
 
-        //- Disallow default bitwise assignment
-        void operator=(const kineticTheoryModel&) = delete;
+    //- Disallow default bitwise assignment
+    void operator=(const kineticTheoryModel&) = delete;
 };
 
 

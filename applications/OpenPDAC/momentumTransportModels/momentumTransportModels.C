@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -49,13 +50,9 @@ makeLESModel(NicenoKEqn);
 makeLESModel(continuousGasKEqn);
 
 #include "kineticTheoryModel.H"
-makeMomentumTransportModel
-(
-    phaseCompressibleMomentumTransportModel,
-    RAS,
-    kineticTheoryModel
-);
-
+makeMomentumTransportModel(phaseCompressibleMomentumTransportModel,
+                           RAS,
+                           kineticTheoryModel);
 
 
 // ************************************************************************* //

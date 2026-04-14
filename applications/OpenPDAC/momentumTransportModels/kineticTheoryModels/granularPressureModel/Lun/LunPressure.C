@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -35,14 +36,9 @@ namespace kineticTheoryModels
 {
 namespace granularPressureModels
 {
-    defineTypeNameAndDebug(Lun, 0);
+defineTypeNameAndDebug(Lun, 0);
 
-    addToRunTimeSelectionTable
-    (
-        granularPressureModel,
-        Lun,
-        dictionary
-    );
+addToRunTimeSelectionTable(granularPressureModel, Lun, dictionary);
 }
 }
 }
@@ -50,128 +46,82 @@ namespace granularPressureModels
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::kineticTheoryModels::granularPressureModels::Lun::Lun
-(
-    const dictionary& coeffDict
-)
-:
-    granularPressureModel(coeffDict)
-{}
+Foam::kineticTheoryModels::granularPressureModels::Lun::Lun(
+    const dictionary& coeffDict)
+: granularPressureModel(coeffDict)
+{
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::kineticTheoryModels::granularPressureModels::Lun::~Lun()
-{}
+Foam::kineticTheoryModels::granularPressureModels::Lun::~Lun() {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 Foam::tmp<Foam::volScalarField>
-Foam::kineticTheoryModels::granularPressureModels::Lun::granularPressureCoeff
-(
-    const volScalarField& alpha1,
-    const phaseModel& continuousPhase,
-    const volScalarField& g0,
-    const volScalarField& rho1,
-    const dimensionedScalar& e
-) const
-{
-
-    return rho1*alpha1*(1 + 2*(1 + e)*alpha1*g0);
-}
-
-
-Foam::tmp<Foam::volScalarField>
-Foam::kineticTheoryModels::granularPressureModels::Lun::
-granularPressureCoeffPrime
-(
-    const volScalarField& alpha1,
-    const phaseModel& continuousPhase,
-    const volScalarField& g0,
-    const volScalarField& g0prime,
-    const volScalarField& rho1,
-    const dimensionedScalar& e
-) const
-{
-    return rho1*(1 + alpha1*(1 + e)*(4*g0 + 2*g0prime*alpha1));
-}
-
-Foam::tmp<Foam::volScalarField>
-Foam::kineticTheoryModels::granularPressureModels::Lun::
-granularPressureCoeff
-(
+Foam::kineticTheoryModels::granularPressureModels::Lun::granularPressureCoeff(
     const phaseModel& phase1,
     const phaseModel& continuousPhase,
     const PtrList<volScalarField>& g0_im,
     const volScalarField& rho1,
-    const dimensionedScalar& e
-) const
+    const dimensionedScalar& e) const
 {
     // pressure coeff from Eq. B3 MFIX Equations 2012
 
     volScalarField alpha1 = phase1;
     const phaseSystem& fluid = phase1.fluid();
-        
-    volScalarField pCoeff = alpha1*rho1;
-    dimensionedScalar eta = 0.5*( 1.0 + e );
+
+    volScalarField pCoeff = alpha1 * rho1;
+    dimensionedScalar eta = 0.5 * (1.0 + e);
 
     forAll(fluid.phases(), phasei)
     {
         const phaseModel& phase = fluid.phases()[phasei];
-        
+
         if (&phase != &continuousPhase)
         {
             const volScalarField& alpha = phase;
-	
-            pCoeff += alpha1*rho1*(4.0 * eta * alpha * g0_im[phasei]);  
 
+            pCoeff += alpha1 * rho1 * (4.0 * eta * alpha * g0_im[phasei]);
         }
     }
 
-    return 1.0*pCoeff;
+    return 1.0 * pCoeff;
 }
-
 
 Foam::tmp<Foam::volScalarField>
 Foam::kineticTheoryModels::granularPressureModels::Lun::
-granularPressureCoeffPrime
-(
-    const phaseModel& phase1,
-    const phaseModel& continuousPhase,
-    const PtrList<volScalarField>& g0_im,
-    const PtrList<volScalarField>& g0prime_im,
-    const volScalarField& rho1,
-    const dimensionedScalar& e
-) const
+    granularPressureCoeffPrime(const phaseModel& phase1,
+                               const phaseModel& continuousPhase,
+                               const PtrList<volScalarField>& g0_im,
+                               const PtrList<volScalarField>& g0prime_im,
+                               const volScalarField& rho1,
+                               const dimensionedScalar& e) const
 {
-    // pressure coeff from Eq. B3 MFIX Equations 2012
-
-    volScalarField alpha1 = phase1;
     const phaseSystem& fluid = phase1.fluid();
 
-    // Eq. B12 MFIX Equations 2012
-    dimensionedScalar eta = 0.5*( 1.0 + e );
+    const dimensionedScalar eta("eta", dimless, 0.5 * (1.0 + e.value()));
 
-    volScalarField pCoeffprime = rho1;
-            
+    tmp<volScalarField> tpCoeffPrime(
+        volScalarField::New("granularPressureCoeffPrime", rho1));
+
+    volScalarField& pCoeffPrime = tpCoeffPrime.ref();
+
     forAll(fluid.phases(), phasei)
     {
-        const phaseModel& phase = fluid.phases()[phasei];
-        
-        if (&phase != &continuousPhase)
+        const phaseModel& phase2 = fluid.phases()[phasei];
+
+        if (&phase2 != &continuousPhase)
         {
-            const volScalarField& alpha = phase;
-	
-            pCoeffprime += rho1*(4.0 * eta * alpha * g0_im[phasei]);  
+            const volScalarField& alpha2 = phase2;
 
+            pCoeffPrime += rho1 * (4.0 * eta * alpha2 * g0_im[phasei]);
         }
-    }    
+    }
 
-    pCoeffprime += alpha1*rho1*(4.0*eta*g0prime_im[phase1.index()]);
-    
-    return 1.0*pCoeffprime;
+    return tpCoeffPrime;
 }
-
 
 // ************************************************************************* //

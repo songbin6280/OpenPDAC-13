@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -49,44 +50,41 @@ namespace frictionalStressModels
                        Class JohnsonJackson Declaration
 \*---------------------------------------------------------------------------*/
 
-class JohnsonJackson
-:
-    public frictionalStressModel
+class JohnsonJackson : public frictionalStressModel
 {
     // Private Data
 
-        //- Material constant for frictional normal stress
-        dimensionedScalar Fr_;
+    //- Material constant for frictional normal stress
+    dimensionedScalar Fr_;
 
-        //- Material constant for frictional normal stress
-        dimensionedScalar eta_;
+    //- Material constant for frictional normal stress
+    dimensionedScalar eta_;
 
-        //- Material constant for frictional normal stress
-        dimensionedScalar p_;
+    //- Material constant for frictional normal stress
+    dimensionedScalar p_;
 
-        //- Angle of internal friction
-        dimensionedScalar phi_;
+    //- Angle of internal friction
+    dimensionedScalar phi_;
 
-        //- Lower limit for (alphaMax - alpha1)
-        dimensionedScalar alphaDeltaMin_;
+    //- Lower limit for (alphaMax - alpha1)
+    dimensionedScalar alphaDeltaMin_;
 
 
     // Private member functions
 
-        //- Read the coefficients from coeffDict
-        virtual bool readCoeffs(const dictionary& coeffDict);
+    //- Read the coefficients from coeffDict
+    virtual bool readCoeffs(const dictionary& coeffDict);
 
 
 public:
-
     //- Runtime type information
     TypeName("JohnsonJackson");
 
 
     // Constructors
 
-        //- Construct from the coefficients dictionary
-        JohnsonJackson(const dictionary& coeffDict);
+    //- Construct from the coefficients dictionary
+    JohnsonJackson(const dictionary& coeffDict);
 
 
     //- Destructor
@@ -95,32 +93,25 @@ public:
 
     // Member Functions
 
-        virtual tmp<volScalarField> frictionalPressure
-        (
-            const phaseModel& phase,
-            const phaseModel& continuousPhase,
-            const dimensionedScalar& alphaMinFriction,
-            const volScalarField& alphasMax
-        ) const;
+    virtual tmp<volScalarField>
+    frictionalPressure(const phaseModel& phase,
+                       const phaseModel& continuousPhase,
+                       const dimensionedScalar& alphaMinFriction,
+                       const volScalarField& alphasMax) const;
 
-        virtual tmp<volScalarField> frictionalPressurePrime
-        (
-            const phaseModel& phase,
-            const phaseModel& continuousPhase,
-            const dimensionedScalar& alphaMinFriction,
-            const volScalarField& alphasMax
-        ) const;
+    virtual tmp<volScalarField>
+    frictionalPressurePrime(const phaseModel& phase,
+                            const phaseModel& continuousPhase,
+                            const dimensionedScalar& alphaMinFriction,
+                            const volScalarField& alphasMax) const;
 
-        virtual tmp<volScalarField> nu
-        (
-            const phaseModel& phase,
-            const phaseModel& continuousPhase,
-            const dimensionedScalar& alphaMinFriction,
-            const volScalarField& alphasMax,
-            const volScalarField& pf,
-            const volScalarField& rho,
-            const volSymmTensorField& D
-        ) const;
+    virtual tmp<volScalarField> nu(const phaseModel& phase,
+                                   const phaseModel& continuousPhase,
+                                   const dimensionedScalar& alphaMinFriction,
+                                   const volScalarField& alphasMax,
+                                   const volScalarField& pf,
+                                   const volScalarField& rho,
+                                   const volSymmTensorField& D) const;
 };
 
 

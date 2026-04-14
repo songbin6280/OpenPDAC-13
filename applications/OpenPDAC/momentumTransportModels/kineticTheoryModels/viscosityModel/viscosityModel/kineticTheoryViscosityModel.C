@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -31,33 +32,30 @@ namespace Foam
 {
 namespace kineticTheoryModels
 {
-    defineTypeNameAndDebug(viscosityModel, 0);
-    defineRunTimeSelectionTable(viscosityModel, dictionary);
+defineTypeNameAndDebug(viscosityModel, 0);
+defineRunTimeSelectionTable(viscosityModel, dictionary);
 }
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::kineticTheoryModels::viscosityModel::viscosityModel
-(
-    const dictionary& coeffDict
-)
-{}
+Foam::kineticTheoryModels::viscosityModel::viscosityModel(
+    const dictionary& coeffDict)
+{
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::kineticTheoryModels::viscosityModel::~viscosityModel()
-{}
+Foam::kineticTheoryModels::viscosityModel::~viscosityModel() {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 bool Foam::kineticTheoryModels::viscosityModel::read(const dictionary& dict)
 {
-    const dictionary& coeffDict =
-        dict.optionalSubDict(type() + "Coeffs");
+    const dictionary& coeffDict = dict.optionalSubDict(type() + "Coeffs");
     return readCoeffs(coeffDict);
 }
 

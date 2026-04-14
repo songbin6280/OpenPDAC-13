@@ -51,61 +51,48 @@ namespace dragModels
                       Class solidSolidDrag Declaration
 \*---------------------------------------------------------------------------*/
 
-class solidSolidDrag
-:
-    public dragModel
+class solidSolidDrag : public dragModel
 {
     // Private Data
 
-        //- Interface
-        const phaseInterface interface_;
+    //- Interface
+    const phaseInterface interface_;
 
-        //- Name of the gaseous phase
-        const word gasName_;
+    //- Name of the gaseous phase
+    const word gasName_;
 
-        //- Name of the solid phase1
-        const word solid1Name_;
+    //- Name of the solid phase1
+    const word solid1Name_;
 
-        //- Name of the solid phase
-        const word solid2Name_;
+    //- Name of the solid phase
+    const word solid2Name_;
 
-        //- RadialModel Flag                                                            
-        //const dimensionedScalar PPdragRadialModel_;                                              
-        const word PPdragRadialModel_;
+    //- Coefficient of restitution
+    const dimensionedScalar E_;
 
-        //- Coefficient of restitution
-        const dimensionedScalar E_;
- 
-        //- Coefficient of friction
-        const dimensionedScalar Cf_;
+    //- Coefficient of friction
+    const dimensionedScalar Cf_;
 
 
     // Private Member Functions
 
-        //- Return the momentum transfer coefficient between solid1 and solid2
-        virtual tmp<volScalarField> KSolidSolid
-        (
-            const phaseModel& gas,
-            const phaseModel& solid1,
-            const phaseModel& solid2
-        ) const;
+    //- Return the momentum transfer coefficient between solid1 and solid2
+    virtual tmp<volScalarField> KSolidSolid(const phaseModel& gas,
+                                            const phaseModel& solid1,
+                                            const phaseModel& solid2) const;
 
 
 public:
-
     //- Runtime type information
     TypeName("solidSolidDrag");
 
 
     // Constructors
 
-        //- Construct from a dictionary and an interface
-        solidSolidDrag
-        (
-            const dictionary& dict,
-            const phaseInterface& interface,
-            const bool registerObject
-        );
+    //- Construct from a dictionary and an interface
+    solidSolidDrag(const dictionary& dict,
+                   const phaseInterface& interface,
+                   const bool registerObject);
 
 
     //- Destructor
@@ -114,11 +101,11 @@ public:
 
     // Member Functions
 
-        //- The drag coefficient used in the momentum equation
-        virtual tmp<volScalarField> K() const;
+    //- The drag coefficient used in the momentum equation
+    virtual tmp<volScalarField> K() const;
 
-        //- The drag coefficient used in the face-momentum equations
-        virtual tmp<surfaceScalarField> Kf() const;
+    //- The drag coefficient used in the face-momentum equations
+    virtual tmp<surfaceScalarField> Kf() const;
 };
 
 

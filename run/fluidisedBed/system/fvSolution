@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Version:  dev
+    \\  /    A nd           | Version:  13
      \\/     M anipulation  |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -16,48 +16,90 @@ FoamFile
 
 solvers
 {
+
+    /*    
+    "alpha.*"
+    {
+        nCorrectors     3;
+        nSubCycles      5;
+
+        MULES
+        {
+            nIter           3;
+            globalBounds    yes;
+        }
+
+        MULESCorr       yes;
+        MULESCorrRelax  0.5;
+
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        // tolerance       1e-10;
+        tolerance       0;
+        relTol          0;
+        minIter         1;
+        maxIter         3;
+        clip            no;
+    }
+    */
+    
+
+    
     "alpha.*"
     {
         nAlphaCorr      1;
-        nAlphaSubCycles 1;
+        nAlphaSubCycles 2;
+
+        smoothLimiter   0.1;
+
         implicitPhasePressure yes;
-
-        solver          PBiCGStab;
-        preconditioner  DIC;
-
-        tolerance       1e-9;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        //tolerance       1e-10;
         relTol          0;
         minIter         1;
+        maxIter         3;
     }
+    
+
 
     p_rgh
     {
         solver          GAMG;
         smoother        DIC;
-        tolerance       1e-8;
-        relTol          0.01;
+        // tolerance       1e-8;
+        // relTol          0.01;
+        tolerance       1e-20;
+        relTol          0;
+        minIter         1;
+        maxIter         2;                
     }
 
     p_rghFinal
     {
         $p_rgh;
         relTol          0;
+        minIter         1;
+        maxIter         2;                
     }
 
     "U.*"
     {
         solver          smoothSolver;
         smoother        symGaussSeidel;
-        tolerance       1e-5;
-        relTol          0;
+        //tolerance       1e-5;
+        //relTol          0;
+        tolerance       0;
         minIter         1;
+        maxIter         2;
     }
 
     "(h|e).*"
     {
         solver          smoothSolver;
         smoother        symGaussSeidel;
-        tolerance       1e-6;
+        //tolerance       1e-6;
+        tolerance       0;
         relTol          0;
         minIter         1;
         maxIter         10;
@@ -67,25 +109,29 @@ solvers
     {
         solver          PBiCGStab;
         preconditioner  DILU;
-        tolerance       1e-6;
-        relTol          0;
+        //tolerance       1e-6;
+        //relTol          0;
+        tolerance       0;
         minIter         1;
+        maxIter         2;                
     }
 
     "(k|epsilon).*"
     {
         solver          PBiCGStab;
         preconditioner  DILU;
-        tolerance       1e-5;
-        relTol          0;
+        //tolerance       1e-5;
+        //relTol          0;
+        tolerance       0;
         minIter         1;
+        maxIter         2;                
     }
 }
 
 PIMPLE
 {
-    nOuterCorrectors 15;
-    nCorrectors      10;
+    nOuterCorrectors 5;
+    nCorrectors      3;
     nEnergyCorrectors   6;
     nNonOrthogonalCorrectors 0;
     faceMomentum        yes;
@@ -93,29 +139,36 @@ PIMPLE
     momentumPredictor   no; 
     correctTdispersed   no;
     
-    innerResidual 1e-6;
+    // innerResidual 1e-7;
     outerCorrectorResidualControl
     {
         p_rgh
         {
-            tolerance 1e-05;
+            tolerance 0;
             relTol 0;
         }
     } 
 
     energyControl
     {
-        "(h|e).*"    1e-5;
+        "(h|e).*"    1e-6;
     }         
 }
 
 relaxationFactors
 {
+    fields
+    {
+        p_rgh           0.3; // Rilassamento forte per la pressione
+    }
     equations
     {
-        ".*"            1;
+        "U.*"               0.7; // Rilassamento per la velocità
+        "(h|e).*"       0.7; // Rilassamento per l'energia/entalpia
+        "(k|epsilon).*" 0.7; // Buona pratica: rilassare anche la turbolenza
     }
 }
+
 
 
 // ************************************************************************* //

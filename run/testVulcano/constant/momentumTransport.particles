@@ -30,14 +30,12 @@ RAS
         multiParticles          off;
         equilibrium             off;
         e                       0.8;
-        alphaMinFriction        0.5;
         residualAlpha           1e-4;
 
         granularViscosityModel          Gidaspow;
         granularConductivityModel       Gidaspow;
         granularPressureModel   Lun;
         frictionalStressModel   JohnsonJacksonSchaeffer;
-        radialModel             SinclairJackson;
 
         GidaspowCoeffs
         {

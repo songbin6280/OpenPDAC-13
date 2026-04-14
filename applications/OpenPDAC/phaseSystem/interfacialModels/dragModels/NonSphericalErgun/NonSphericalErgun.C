@@ -32,49 +32,42 @@ namespace Foam
 {
 namespace dragModels
 {
-    defineTypeNameAndDebug(NonSphericalErgun, 0);
-    addToRunTimeSelectionTable(dragModel, NonSphericalErgun, dictionary);
+defineTypeNameAndDebug(NonSphericalErgun, 0);
+addToRunTimeSelectionTable(dragModel, NonSphericalErgun, dictionary);
 }
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::dragModels::NonSphericalErgun::NonSphericalErgun
-(
+Foam::dragModels::NonSphericalErgun::NonSphericalErgun(
     const dictionary& dict,
     const phaseInterface& interface,
-    const bool registerObject
-)
-:
-    dispersedDragModel(dict, interface, registerObject),
-    sphericity_("sphericity", dimless, dict)    
-{}
+    const bool registerObject)
+: dispersedDragModel(dict, interface, registerObject),
+  sphericity_("sphericity", dimless, dict)
+{
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::dragModels::NonSphericalErgun::~NonSphericalErgun()
-{}
+Foam::dragModels::NonSphericalErgun::~NonSphericalErgun() {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::tmp<Foam::volScalarField> Foam::dragModels::NonSphericalErgun::CdRe() const
+Foam::tmp<Foam::volScalarField>
+Foam::dragModels::NonSphericalErgun::CdRe() const
 {
-    const phaseModel& dispersed = interface_.dispersed();
     const phaseModel& continuous = interface_.continuous();
-    
-    return
-        (4.0/3.0)
-       *(
-            150
-           *max(dispersed, dispersed.residualAlpha())
-           /max(continuous, continuous.residualAlpha())
-           / sqr(sphericity_)
-          + 1.75*interface_.Re() 
-           / sphericity_
-        );
+
+    const volScalarField alphaG(
+        max(interface_.continuous(), interface_.continuous().residualAlpha()));
+
+    return (4.0 / 3.0)
+         * (150 * (scalar(1) - alphaG) / alphaG / sqr(sphericity_)
+            + 1.75 * interface_.Re() / sphericity_);
 }
 
 

@@ -15,33 +15,36 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-defaultFieldValues
-(
-			volScalarFieldValue alpha.gas 0.9999999999
-			volScalarFieldValue alpha.particles 0.0000000001   
-			volScalarFieldValue air.gas 0.99
-			volScalarFieldValue H2O.gas 0.01
-                        volScalarFieldValue T.gas 300.0
-                        volScalarFieldValue T.particles 300.0
-);
+defaultValues
+{
+    alpha.gas 0.9999999999;
+    alpha.particles 0.0000000001;
+    air.gas 0.99;
+    H2O.gas 0.01;
+    T.gas 300.0;
+    T.particles 300.0;
+}
 
-regions
-(
-	zoneToCell
+zones
+{
+    crater
+    {
+        type        lookup;
+        name        crater;
+        zoneType    cell;
+        
+        values
 	{
-		zone "crater";
-		fieldValues
-		(
-			volScalarFieldValue alpha.gas 0.6
-			volScalarFieldValue alpha.particles 0.4   
-			volScalarFieldValue air.gas 0.000001
-			volScalarFieldValue H2O.gas 0.999999
-                        volScalarFieldValue p 5.0e06
-                        volScalarFieldValue T.gas 633.0
-                        volScalarFieldValue T.particles 633.0
-		);
-	}	
-);
+	    alpha.gas 0.6;
+            alpha.particles 0.4; 
+            air.gas 0.000001;
+            H2O.gas 0.999999;
+            p 5000000;
+            T.gas 523.0;
+            T.particles 523.0;
+        };
+    }
+}
 
 
 // ************************************************************************* //

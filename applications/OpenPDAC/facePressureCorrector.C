@@ -319,21 +319,21 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
                         Info << "PIMPLE iter: " << pimpleIter
                              << ", Initial p_rgh residual: " << r0 << endl;
 
-                        // Resetta lo stato alla prima iterazione PIMPLE
+                        // Reset the state at the first PIMPLE iteration
                         // (corr=1)
                         if (pimpleIter == 1)
                         {
                             prevPimpleInitialResidual_ = r0;
                         }
-                        // Applica la logica di controllo nelle iterazioni
-                        // successive
-                        else if (pimpleIter > pimple.nCorr() / 2
+                        // Apply the control logic in subsequent iterations
+                        else if (pimpleIter > (minOuterCorrectors - 3)
                                  && !pimple.finalIter())
                         {
                             Info << "residual ratio "
                                  << r0 / prevPimpleInitialResidual_ << endl;
-                            // Se il residuo non è diminuito, imposta il flag
-                            if (r0 > prevPimpleInitialResidual_ * residualRatio)
+                            // If the residual has not decreased, set the flag
+                            if (r0 > prevPimpleInitialResidual_ * residualRatio
+                                && !isMeshChanging_)
                             {
                                 if (ratioFirstCheck)
                                 {
@@ -358,8 +358,7 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
                         }
                         else
                         {
-                            // Aggiorna comunque il residuo per le iterazioni
-                            // iniziali
+                            // Update the residual for the initial iterations
                             prevPimpleInitialResidual_ = r0;
                         }
                     }
@@ -442,10 +441,29 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
 
             if (lowPressureTimestepCorrection)
             {
-                p_ratio =
+                const scalar new_p_ratio =
                     max(0.01,
                         min(p).value() / p.weightedAverage(mesh_.V()).value());
+                p_ratio = min(p_ratio, new_p_ratio);
                 Info << "p_ratio = " << p_ratio << endl;
+            }
+
+            if (tempOscillationControl_)
+            {
+                if (fluid_.thermalPhases().size() > 0)
+                {
+                    forAll(fluid_.thermalPhases(), i)
+                    {
+                        const phaseModel& phase = fluid_.thermalPhases()[i];
+                        const volScalarField& T = phase.thermo().T();
+                        scalar minT = min(T).value();
+
+                        minTempMin_[i] = min(minTempMin_[i], minT);
+                        maxTempMin_[i] = max(maxTempMin_[i], minT);
+                        sumTempMin_[i] += minT;
+                        pimpleTempIterCount_[i]++;
+                    }
+                }
             }
 
             // Limit p_rgh

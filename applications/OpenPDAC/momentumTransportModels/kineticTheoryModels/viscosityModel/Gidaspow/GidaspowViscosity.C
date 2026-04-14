@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -35,8 +36,8 @@ namespace kineticTheoryModels
 {
 namespace viscosityModels
 {
-    defineTypeNameAndDebug(Gidaspow, 0);
-    addToRunTimeSelectionTable(viscosityModel, Gidaspow, dictionary);
+defineTypeNameAndDebug(Gidaspow, 0);
+addToRunTimeSelectionTable(viscosityModel, Gidaspow, dictionary);
 }
 }
 }
@@ -44,64 +45,23 @@ namespace viscosityModels
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::kineticTheoryModels::viscosityModels::Gidaspow::Gidaspow
-(
-    const dictionary& coeffDict
-)
-:
-    viscosityModel(coeffDict),
-    alfa_
-    (
-        "alfa",
-        dimless,
-        coeffDict.lookupOrDefault<scalar>("alfa", 1.6)
-    )
-{}
+Foam::kineticTheoryModels::viscosityModels::Gidaspow::Gidaspow(
+    const dictionary& coeffDict)
+: viscosityModel(coeffDict),
+  alfa_("alfa", dimless, coeffDict.lookupOrDefault<scalar>("alfa", 1.6))
+{
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::kineticTheoryModels::viscosityModels::Gidaspow::~Gidaspow()
-{}
+Foam::kineticTheoryModels::viscosityModels::Gidaspow::~Gidaspow() {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 Foam::tmp<Foam::volScalarField>
-Foam::kineticTheoryModels::viscosityModels::Gidaspow::nu
-(
-    const volScalarField& alpha1,
-    const volScalarField& Theta,
-    const dimensionedScalar& ThetaSmall,
-    const volScalarField& g0,
-    const volScalarField& beta,
-    const volScalarField& rho1,
-    const volScalarField& da,
-    const dimensionedScalar& e
-) const
-{
-    const scalar sqrtPi = sqrt(constant::mathematical::pi);
-
-    return volScalarField::New
-    (
-        IOobject::groupName
-        (
-            Foam::typedName<viscosityModel>("nu"),
-            Theta.group()
-        ),
-        da*sqrt(Theta)
-       *(
-            (4.0/5.0)*alpha1*g0*(1.0 + e)/sqrtPi
-          + (1.0/15.0)*alpha1*g0*(1.0 + e)*sqrtPi
-          + (1.0/6.0)*sqrtPi
-          + (10.0/96.0)*sqrtPi/((1.0 + e)*g0*alpha1)
-        )
-    );
-}
-
-Foam::tmp<Foam::volScalarField>
-Foam::kineticTheoryModels::viscosityModels::Gidaspow::nu
-(
+Foam::kineticTheoryModels::viscosityModels::Gidaspow::nu(
     const volScalarField& alpha1,
     const volScalarField& Theta,
     const dimensionedScalar& ThetaSmall,
@@ -110,31 +70,25 @@ Foam::kineticTheoryModels::viscosityModels::Gidaspow::nu
     const volScalarField& beta,
     const volScalarField& rho1,
     const volScalarField& da,
-    const dimensionedScalar& e
-) const
+    const dimensionedScalar& e) const
 {
     const scalar sqrtPi = sqrt(constant::mathematical::pi);
     const scalar Pi = constant::mathematical::pi;
 
-    const dimensionedScalar eta = 0.5*(1.0 + e);
+    const dimensionedScalar eta = 0.5 * (1.0 + e);
 
-    const volScalarField mu = 5.0/96.0*rho1*da*sqrt(Theta)*sqrtPi; 
+    const volScalarField mu = 5.0 / 96.0 * rho1 * da * sqrt(Theta) * sqrtPi;
 
-    const volScalarField mu_b = 256.0/(5.0*Pi)*mu*alpha1*sumAlphaGs0;
+    const volScalarField mu_b = 256.0 / (5.0 * Pi) * mu * alpha1 * sumAlphaGs0;
 
-    const volScalarField mu_i = ( mu / (g0*eta)*
-                                sqr(1+8/5*eta*sumAlphaGs0)+
-                                3/5*eta*mu_b );
+    const volScalarField mu_i =
+        (mu / (g0 * eta) * sqr(1 + 8 / 5 * eta * sumAlphaGs0)
+         + 3 / 5 * eta * mu_b);
 
-    return volScalarField::New
-    (
-        IOobject::groupName
-        (
-            Foam::typedName<viscosityModel>("nu"),
-            Theta.group()
-        ),
-        mu_i/rho1
-    );
+    return volScalarField::New(
+        IOobject::groupName(Foam::typedName<viscosityModel>("nu"),
+                            Theta.group()),
+        mu_i / rho1);
 }
 
 // ************************************************************************* //

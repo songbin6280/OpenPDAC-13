@@ -46,25 +46,38 @@ void Foam::hydrostaticInitialisation(volScalarField& p_rgh,
                                      phaseSystem& fluid,
                                      const dictionary& dict)
 {
+    // Reference boundary pressure value, initialized to zero.
     dimensionedScalar pBdry(
         "pBdry", dimensionSet(1, -1, -2, 0, 0), scalar(0.0));
 
+    // The entire procedure is executed only if specified in the case
+    // dictionary.
     if (dict.lookupOrDefault<bool>("hydrostaticInitialisation", false))
     {
         const fvMesh& mesh = p_rgh.mesh();
 
+        // Create local copies of the mixture density and velocity fields.
+        // These are used for hydrostatic calculations without modifying the
+        // main solver fields until the end.
         volScalarField rho("rho", fluid.rho());
         volVectorField U("U", fluid.U());
 
+        // Reference height on the boundary, initialized to a very small number.
         dimensionedScalar hBdry("hBdry", dimLength, -VGREAT);
 
+        // Name of the reference patch. Use the name (word), not the label!
         word local_patchName = ""; // Use the name (word), not the label!
 
+        // Hydrostatic initialization is performed only at startup (time=0),
+        // not when restarting from a previous time.
         if (!mesh.time().restart())
         {
 
             volScalarField ph(p);
 
+            // --- Find Reference Patch ---
+            // Iterate over all boundary patches to find a suitable patch
+            // to use as a reference for the hydrostatic pressure.
             forAll(ph.boundaryField(), bdryID)
             {
                 if ((mag(mesh.Sf().boundaryField()[bdryID][0] ^ g).value()
@@ -72,12 +85,21 @@ void Foam::hydrostaticInitialisation(volScalarField& p_rgh,
                             * mag(g).value())
                     && (ph.boundaryField()[bdryID].type() == "fixedValue"))
                 {
+                    // The patch is suitable if:
+                    // 1. It is "horizontal" with respect to gravity (cross
+                    // product is zero).
+                    // 2. It has a 'fixedValue' boundary condition for pressure.
+
                     const fvPatchScalarField& ph_p = ph.boundaryField()[bdryID];
 
+                    // Additional check: the pressure value must be uniform
+                    // across the patch.
                     if (min(ph_p) == max(ph_p))
                     {
                         local_patchName =
                             ph.boundaryField()[bdryID].patch().name();
+                        // Store the pressure value and the reference height
+                        // coordinate from the found patch.
                         pBdry.value() = min(ph_p);
                         Sout << "pBdry " << pBdry.value() << endl;
 
@@ -98,6 +120,9 @@ void Foam::hydrostaticInitialisation(volScalarField& p_rgh,
             }
 
 
+            // --- Parallel Synchronization ---
+            // Ensure all processors use the same reference patch
+            // and the same pressure and height values.
             reduce(local_patchName, maxOp<word>());
             const word& patchName = local_patchName;
 
@@ -114,11 +139,17 @@ void Foam::hydrostaticInitialisation(volScalarField& p_rgh,
             reduce(pBdry, maxOp<dimensionedScalar>());
             reduce(hBdry, maxOp<dimensionedScalar>());
 
-            // Initialize with constant value
+            // Initialize the 'ph' pressure field with the reference value.
             ph = pBdry;
 
+            // --- Iterative Loop for Pressure-Density Coupling ---
+            // This loop calculates a hydrostatic pressure profile, accounting
+            // for the variation of density with pressure (for compressible
+            // fluids).
             for (label i = 0; i < 10; i++)
             {
+                // Update pressure and recalculate thermophysical properties
+                // (density).
                 p = ph;
                 fluid.correctThermo();
                 rho = fluid.rho();
@@ -126,26 +157,33 @@ void Foam::hydrostaticInitialisation(volScalarField& p_rgh,
                 ph = pBdry
                    + ((g & mesh.C()) - (-mag(g) * hBdry)) * 0.5
                          * (min(rho) + max(rho));
+                // An average density (min+max)/2 is used to stabilize the
+                // calculation.
                 Info << "min ph " << min(ph).value() << " max ph "
                      << max(ph).value() << endl;
             }
 
+            // Set hRef to 0, it is no longer needed after calculating ph.
             hRef.value() = 0.0;
             Info << "hRef " << hRef.value() << endl;
 
-            // the new hydrostatic pressure profile is used to update the
-            // density field
+            // The new hydrostatic pressure profile is used to update the
+            // density field.
             p = ph;
             fluid.correctThermo();
             rho = fluid.rho();
 
-            // we initialize the field ph_rgh with the computed pressure and
-            // density
+            // We initialize the field ph_rgh (pressure minus the hydrostatic
+            // part) with the computed pressure and density. This field should
+            // be nearly uniform under hydrostatic conditions.
             ph_rgh = ph - rho * gh;
 
             Info << "Updating p_rgh boundary condition on patch " << patchName
                  << " to be consistent with the reference pressure." << endl;
 
+            // --- Correction of Boundary Condition for p_rgh ---
+            // The BC for p_rgh on the reference patch must be made consistent
+            // with the calculated ph, rho, and gh values.
             label patchID = mesh.boundaryMesh().findIndex(patchName);
 
             // we change the fixed value b.c. of ph_rgh at the top face, in
@@ -161,11 +199,14 @@ void Foam::hydrostaticInitialisation(volScalarField& p_rgh,
                 }
             }
 
+            // Calculate a fictitious flux 'phig' due to density gradients
+            // to enforce pressure consistency.
             surfaceScalarField rhof("rhof", fvc::interpolate(rho));
             surfaceScalarField phig(
                 "phig", -rhof * ghf * fvc::snGrad(rho) * mesh.magSf());
 
-            // Update the pressure BCs to ensure flux consistency
+            // Update the pressure BCs (e.g., 'fixedFluxPressure') to ensure
+            // flux consistency.
             constrainPressure(ph_rgh, rho, U, phig, rhof);
             p = ph_rgh + rho * gh;
 
@@ -189,6 +230,10 @@ void Foam::hydrostaticInitialisation(volScalarField& p_rgh,
             fluid.correctThermo();
             rho = fluid.rho();
 
+            // --- Final Correction Loop for p_rgh ---
+            // Solves a Poisson equation for p_rgh to smooth the field and
+            // ensure that pressure forces exactly balance buoyancy forces
+            // due to density stratification.
             label nCorr(
                 dict.lookupOrDefault<label>("nHydrostaticCorrectors", 5));
 
@@ -201,9 +246,10 @@ void Foam::hydrostaticInitialisation(volScalarField& p_rgh,
                 surfaceScalarField phig(
                     "phig", -rhof * ghf * fvc::snGrad(rho) * mesh.magSf());
 
-                // Update the pressure BCs to ensure flux consistency
+                // Update the pressure BCs again to ensure flux consistency.
                 constrainPressure(ph_rgh, rho, U, phig, rhof);
 
+                // Solve: ∇ ⋅ (rhof ∇p_rgh) = ∇ ⋅ phig
                 fvScalarMatrix ph_rghEqn(fvm::laplacian(rhof, ph_rgh)
                                          == fvc::div(phig));
 
@@ -222,14 +268,18 @@ void Foam::hydrostaticInitialisation(volScalarField& p_rgh,
                      << max(rho).value() << endl;
             }
 
+            // Write the initialized fields to usa for the BC.
             ph_rgh.write();
             p.write();
 
+            // Assign the calculated p_rgh field to the main solver field.
             p_rgh = ph_rgh;
         }
     }
     else
     {
+        // If hydrostatic initialization is disabled,
+        // simply ensure that p_rgh is consistent with p and rho.
         volScalarField rho("rho", fluid.rho());
         // Force p_rgh to be consistent with p
         p_rgh = p - rho * gh;

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Version:  12
+    \\  /    A nd           | Version:  13
      \\/     M anipulation  |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -27,12 +27,20 @@ boundaryField
     }
     outlet
     {
-        type            fixedValue;
+        /*
+        type            pressureInletOutletVelocity;
+        phi             phi.particles2;
+        value           uniform (0 0 0);
+        */
+        type            JohnsonJacksonParticleSlip;
+        // type            fixedValue;        
+        specularityCoefficient 0.01;
         value           uniform (0 0 0);
     }
     walls
     {
         type            JohnsonJacksonParticleSlip;
+        // type            fixedValue;
         specularityCoefficient 0.01;
         value           uniform (0 0 0);
     }

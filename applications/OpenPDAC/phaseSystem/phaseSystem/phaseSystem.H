@@ -63,191 +63,173 @@ namespace Foam
 class surfaceTensionCoefficientModel;
 class momentumTransferSystem;
 class pressureReference;
+class radialModel;
 class nonOrthogonalSolutionControl;
 
 /*---------------------------------------------------------------------------*\
                          Class phaseSystem Declaration
 \*---------------------------------------------------------------------------*/
 
-class phaseSystem
-:
-    public IOdictionary
+class phaseSystem : public IOdictionary
 {
 public:
-
     // Public Types
 
-        //- alpha solution control structure
-        struct alphaControl
-        {
-            //- Function to calculate the number of explicit MULES sub-cycles
-            //  from the alpha Courant number
-            autoPtr<Function1<scalar>> nAlphaSubCyclesPtr;
+    //- alpha solution control structure
+    struct alphaControl
+    {
+        //- Function to calculate the number of explicit MULES sub-cycles
+        //  from the alpha Courant number
+        autoPtr<Function1<scalar>> nAlphaSubCyclesPtr;
 
-            //- Number of alpha equation sub-cycles
-            label nAlphaSubCycles;
+        //- Number of alpha equation sub-cycles
+        label nAlphaSubCycles;
 
-            //- Number of alpha correctors
-            //  Usually used to improve the accuracy at high Courant numbers
-            //  with semi-implicit MULES, MULESCorr = true
-            label nAlphaCorr;
+        //- Number of alpha correctors
+        //  Usually used to improve the accuracy at high Courant numbers
+        //  with semi-implicit MULES, MULESCorr = true
+        label nAlphaCorr;
 
-            //- Semi-implicit MULES switch
-            bool MULESCorr;
+        //- Semi-implicit MULES switch
+        bool MULESCorr;
 
-            //- Explicit correction relaxation factor (defaults to 0.5)
-            scalar MULESCorrRelax;
+        //- Explicit correction relaxation factor (defaults to 0.5)
+        scalar MULESCorrRelax;
 
-            //- Compressibility source stabilisation tolerance
-            scalar vDotResidualAlpha;
+        //- Compressibility source stabilisation tolerance
+        scalar vDotResidualAlpha;
 
-            //- MULES controls
-            MULES::control MULES;
+        //- MULES controls
+        MULES::control MULES;
 
-            //- Optionally clip the phase-fractions
-            //  between their physical limits and to sum to 1.
-            //  Defaults to false
-            Switch clip;
+        //- Optionally clip the phase-fractions
+        //  between their physical limits and to sum to 1.
+        //  Defaults to false
+        Switch clip;
 
-            //- Read the alpha and MULES controls from dict
-            void read(const dictionary& dict);
+        //- Read the alpha and MULES controls from dict
+        void read(const dictionary& dict);
 
-            //- Correct nAlphaSubCycles for the current Courant number
-            void correct(const scalar CoNum);
-        };
+        //- Correct nAlphaSubCycles for the current Courant number
+        void correct(const scalar CoNum);
+    };
 
 
     // Public Type Definitions
 
-        //- List of phase models
-        typedef PtrListDictionary<phaseModel> phaseModelList;
+    //- List of phase models
+    typedef PtrListDictionary<phaseModel> phaseModelList;
 
-        //- Partial list of phase models
-        typedef UPtrList<phaseModel> phaseModelPartialList;
+    //- Partial list of phase models
+    typedef UPtrList<phaseModel> phaseModelPartialList;
 
 
 protected:
-
     // Protected Type Definitions
 
-        //- Table of interface compression coefficients
-        typedef
-            HashTable
-            <
-                scalar,
-                phaseInterfaceKey,
-                phaseInterfaceKey::hash
-            >
-            cAlphaTable;
+    //- Table of interface compression coefficients
+    typedef HashTable<scalar, phaseInterfaceKey, phaseInterfaceKey::hash>
+        cAlphaTable;
 
-        //- Table of surface tension models
-        typedef
-            HashPtrTable
-            <
-                surfaceTensionCoefficientModel,
-                phaseInterfaceKey,
-                phaseInterfaceKey::hash
-            >
-            surfaceTensionCoefficientModelTable;
+    //- Table of surface tension models
+    typedef HashPtrTable<surfaceTensionCoefficientModel,
+                         phaseInterfaceKey,
+                         phaseInterfaceKey::hash>
+        surfaceTensionCoefficientModelTable;
 
 
     // Protected Data
 
-        //- Reference to the mesh
-        const fvMesh& mesh_;
+    //- Reference to the mesh
+    const fvMesh& mesh_;
 
-        //- Reference to pimpleNoLoopControl
-        const pimpleNoLoopControl& pimple_;
+    //- Reference to pimpleNoLoopControl
+    const pimpleNoLoopControl& pimple_;
 
-        //- Optional MRF zones
-        IOMRFZoneList MRF_;
+    //- Optional MRF zones
+    IOMRFZoneList MRF_;
 
-        //- Name of continuous phase
-        word continuousPhaseName_;
+    //- Name of continuous phase
+    word continuousPhaseName_;
 
-        //- Name of optional reference phase which is not solved for
-        // but obtained from the sum of the other phases
-        word referencePhaseName_;
+    //- Name of optional reference phase which is not solved for
+    // but obtained from the sum of the other phases
+    word referencePhaseName_;
 
-        //- Phase models
-        phaseModelList phaseModels_;
+    //- Phase models
+    phaseModelList phaseModels_;
 
-        //- Moving phase models
-        phaseModelPartialList movingPhaseModels_;
+    //- Moving phase models
+    phaseModelPartialList movingPhaseModels_;
 
-        //- Stationary phase models
-        phaseModelPartialList stationaryPhaseModels_;
+    //- Stationary phase models
+    phaseModelPartialList stationaryPhaseModels_;
 
-        //- Thermal phase models
-        phaseModelPartialList thermalPhaseModels_;
+    //- Thermal phase models
+    phaseModelPartialList thermalPhaseModels_;
 
-        //- Multi-component phase models
-        phaseModelPartialList multicomponentPhaseModels_;
+    //- Multi-component phase models
+    phaseModelPartialList multicomponentPhaseModels_;
 
-        //- Total volumetric flux
-        surfaceScalarField phi_;
+    //- Total volumetric flux
+    surfaceScalarField phi_;
 
-        //- Rate of change of pressure
-        volScalarField dpdt_;
+    //- Rate of change of pressure
+    volScalarField dpdt_;
 
-        //- Interface compression coefficients
-        const cAlphaTable cAlphas_;
+    //- Interface compression coefficients
+    const cAlphaTable cAlphas_;
 
-        //- Stabilisation for normalisation of the interface normal
-        const dimensionedScalar deltaN_;
+    //- Stabilisation for normalisation of the interface normal
+    const dimensionedScalar deltaN_;
 
-        //- Surface tension models
-        const surfaceTensionCoefficientModelTable
-            surfaceTensionCoefficientModels_;
+    //- Radial distribution function model
+    autoPtr<radialModel> radialModel_;
+
+    //- Min value for which the frictional stresses are zero
+    dimensionedScalar alphaMinFriction_;
+
+    //- Threshold for polydisperse packing model
+    dimensionedScalar alphasThreshold_;
+
+    //- Surface tension models
+    const surfaceTensionCoefficientModelTable surfaceTensionCoefficientModels_;
 
 
     // Protected Member Functions
 
-        //- Return the sum of the phase fractions of the moving phases
-        tmp<volScalarField> sumAlphaMoving() const;
+    //- Return the sum of the phase fractions of the moving phases
+    tmp<volScalarField> sumAlphaMoving() const;
 
-        //- Re-normalise the velocity of the phases
-        //  around the specified mixture mean
-        void setMixtureU(const volVectorField& Um);
+    //- Re-normalise the velocity of the phases
+    //  around the specified mixture mean
+    void setMixtureU(const volVectorField& Um);
 
-        //- Re-normalise the flux of the phases
-        //  around the specified mixture mean
-        void setMixturePhi
-        (
-            const PtrList<surfaceScalarField>& alphafs,
-            const surfaceScalarField& phim
-        );
+    //- Re-normalise the flux of the phases
+    //  around the specified mixture mean
+    void setMixturePhi(const PtrList<surfaceScalarField>& alphafs,
+                       const surfaceScalarField& phim);
 
 
-        // Functions required for interface compression
+    // Functions required for interface compression
 
-            //- Normal to interface between two phases
-            //  Used for interface compression
-            tmp<surfaceVectorField> nHatfv
-            (
-                const volScalarField& alpha1,
-                const volScalarField& alpha2
-            ) const;
+    //- Normal to interface between two phases
+    //  Used for interface compression
+    tmp<surfaceVectorField> nHatfv(const volScalarField& alpha1,
+                                   const volScalarField& alpha2) const;
 
-            //- Normal to interface between two phases dotted with face areas
-            //  Used for interface compression
-            tmp<surfaceScalarField> nHatf
-            (
-                const volScalarField& alpha1,
-                const volScalarField& alpha2
-            ) const;
+    //- Normal to interface between two phases dotted with face areas
+    //  Used for interface compression
+    tmp<surfaceScalarField> nHatf(const volScalarField& alpha1,
+                                  const volScalarField& alpha2) const;
 
-            //- Curvature of interface between two phases
-            //  Used for interface compression
-            tmp<volScalarField> K
-            (
-                const phaseModel& alpha1,
-                const phaseModel& alpha2
-            ) const;
+    //- Curvature of interface between two phases
+    //  Used for interface compression
+    tmp<volScalarField> K(const phaseModel& alpha1,
+                          const phaseModel& alpha2) const;
 
 
 public:
-
     //- Runtime type information
     TypeName("phaseSystem");
 
@@ -258,8 +240,8 @@ public:
 
     // Constructors
 
-        //- Construct from fvMesh
-        phaseSystem(const fvMesh& mesh);
+    //- Construct from fvMesh
+    phaseSystem(const fvMesh& mesh);
 
 
     //- Destructor
@@ -268,201 +250,190 @@ public:
 
     // Member Functions
 
-        // Access
+    // Access
 
-            //- Return the mesh
-            inline const fvMesh& mesh() const;
+    //- Return the mesh
+    inline const fvMesh& mesh() const;
 
-            //- Return pimpleNoLoopControl
-            inline const pimpleNoLoopControl& pimple() const;
+    //- Return pimpleNoLoopControl
+    inline const pimpleNoLoopControl& pimple() const;
 
-            //- Return the phase models
-            inline const phaseModelList& phases() const;
+    //- Return the phase models
+    inline const phaseModelList& phases() const;
 
-            //- Access the phase models
-            inline phaseModelList& phases();
+    //- Access the phase models
+    inline phaseModelList& phases();
 
-            //- Return the models for phases that are moving
-            inline const phaseModelPartialList& movingPhases() const;
+    //- Return the models for phases that are moving
+    inline const phaseModelPartialList& movingPhases() const;
 
-            //- Access the models for phases that are moving
-            inline phaseModelPartialList& movingPhases();
+    //- Access the models for phases that are moving
+    inline phaseModelPartialList& movingPhases();
 
-            //- Return the models for phases that are stationary
-            inline const phaseModelPartialList& stationaryPhases() const;
+    //- Return the models for phases that are stationary
+    inline const phaseModelPartialList& stationaryPhases() const;
 
-            //- Access the models for phases that are stationary
-            inline phaseModelPartialList& stationaryPhases();
+    //- Access the models for phases that are stationary
+    inline phaseModelPartialList& stationaryPhases();
 
-            //- Return the models for phases that have variable temperature
-            inline const phaseModelPartialList& thermalPhases() const;
+    //- Return the models for phases that have variable temperature
+    inline const phaseModelPartialList& thermalPhases() const;
 
-            //- Access the models for phases that have variable temperature
-            inline phaseModelPartialList& thermalPhases();
+    //- Access the models for phases that have variable temperature
+    inline phaseModelPartialList& thermalPhases();
 
-            //- Return the models for phases that have multiple species
-            inline const phaseModelPartialList& multicomponentPhases() const;
+    //- Return the models for phases that have multiple species
+    inline const phaseModelPartialList& multicomponentPhases() const;
 
-            //- Access the models for phases that have multiple species
-            inline phaseModelPartialList& multicomponentPhases();
+    //- Access the models for phases that have multiple species
+    inline phaseModelPartialList& multicomponentPhases();
 
-            //- Return the phase not given as an argument in a two-phase system
-            //  An error is generated if the system is not two-phase
-            inline const phaseModel& otherPhase(const phaseModel& phase) const;
+    //- Return the phase not given as an argument in a two-phase system
+    //  An error is generated if the system is not two-phase
+    inline const phaseModel& otherPhase(const phaseModel& phase) const;
 
-            //- Return the mixture flux
-            inline const surfaceScalarField& phi() const;
+    //- Return the mixture flux
+    inline const surfaceScalarField& phi() const;
 
-            //- Access the mixture flux
-            inline surfaceScalarField& phi();
+    //- Access the mixture flux
+    inline surfaceScalarField& phi();
 
-            //- Return the rate of change of the pressure
-            inline const volScalarField& dpdt() const;
+    //- Return the rate of change of the pressure
+    inline const volScalarField& dpdt() const;
 
-            //- Access the rate of change of the pressure
-            inline volScalarField& dpdt();
+    //- Access the rate of change of the pressure
+    inline volScalarField& dpdt();
 
-            //- Return MRF zones
-            inline const IOMRFZoneList& MRF() const;
+    //- Return MRF zones
+    inline const IOMRFZoneList& MRF() const;
 
-            //- Access the fvModels
-            inline Foam::fvModels& fvModels(fvMesh& mesh);
+    //- Access the fvModels
+    inline Foam::fvModels& fvModels(fvMesh& mesh);
 
-            //- Access the fvModels
-            inline const Foam::fvModels& fvModels() const;
+    //- Access the fvModels
+    inline const Foam::fvModels& fvModels() const;
 
-            //- Access the fvConstraints
-            inline Foam::fvConstraints& fvConstraints(fvMesh& mesh);
+    //- Access the fvConstraints
+    inline Foam::fvConstraints& fvConstraints(fvMesh& mesh);
 
-            //- Access the fvConstraints
-            inline const Foam::fvConstraints& fvConstraints() const;
+    //- Access the fvConstraints
+    inline const Foam::fvConstraints& fvConstraints() const;
 
+    //- Return the radial distribution function model
+    inline const radialModel& radial() const;
 
-        // Sub-model lookup
+    //- Return alphaMinFriction
+    inline const dimensionedScalar& alphaMinFriction() const;
 
-            //- Check availability of a sub model for a given interface
-            template<class ModelType>
-            bool foundInterfacialModel
-            (
-                const phaseInterface& interface
-            ) const;
-
-            //- Return a sub model for an interface
-            template<class ModelType>
-            const ModelType& lookupInterfacialModel
-            (
-                const phaseInterface& interface
-            ) const;
+    //- Return alphasThreshold
+    inline const dimensionedScalar& alphasThreshold() const;
 
 
-        // Properties
+    // Sub-model lookup
 
-            //- Return the mixture density
-            tmp<volScalarField> rho() const;
+    //- Check availability of a sub model for a given interface
+    template<class ModelType>
+    bool foundInterfacialModel(const phaseInterface& interface) const;
 
-            //- Return the maximum packing
-            tmp<volScalarField> alfasMax() const;
-
-            word continuousPhaseName() const;
-
-            //- Return the mixture velocity
-            tmp<volVectorField> U() const;
-
-            //- Return the surface tension coefficient for an interface
-            tmp<volScalarField> sigma
-            (
-                const phaseInterfaceKey& key
-            ) const;
-
-            //- Return the surface tension coefficient for an interface on a
-            //  patch
-            tmp<scalarField> sigma
-            (
-                const phaseInterfaceKey& key,
-                const label patchi
-            ) const;
-
-            //- Indicator of the proximity of the interface
-            //  Field values are 1 near and 0 away for the interface.
-            tmp<volScalarField> nearInterface() const;
-
-            //- Stabilisation for normalisation of the interface normal
-            inline const dimensionedScalar& deltaN() const;
-
-            //- Return the surface tension force
-            tmp<surfaceScalarField> surfaceTension(const phaseModel&) const;
-
-            //- Return incompressibility
-            bool incompressible() const;
+    //- Return a sub model for an interface
+    template<class ModelType>
+    const ModelType&
+    lookupInterfacialModel(const phaseInterface& interface) const;
 
 
-        // Evolution
+    // Properties
 
-            //- Returns true if the phase pressure is treated implicitly
-            //  in the phase fraction equations
-            bool implicitPhasePressure() const;
+    //- Return the mixture density
+    tmp<volScalarField> rho() const;
 
-            //- Solve for the phase fractions
-            void solve
-            (
-                const alphaControl& alphaControls,
-                const PtrList<volScalarField>& rAs,
-                const momentumTransferSystem& mts
-            );
+    //- Return the maximum packing
+    tmp<volScalarField> alfasMax() const;
 
-            //- Correct the fluid properties other than those listed below
-            void correct();
+    word continuousPhaseName() const;
 
-            //- Correct the continuity errors
-            void correctContinuityError
-            (
-                const PtrList<volScalarField::Internal>& dmdts
-            );
+    //- Return the mixture velocity
+    tmp<volVectorField> U() const;
 
-            //- Correct the kinematics
-            void correctKinematics();
+    //- Return the surface tension coefficient for an interface
+    tmp<volScalarField> sigma(const phaseInterfaceKey& key) const;
 
-            //- Correct the thermodynamics
-            void correctThermo();
+    //- Return the surface tension coefficient for an interface on a
+    //  patch
+    tmp<scalarField> sigma(const phaseInterfaceKey& key,
+                           const label patchi) const;
 
-            //- Correct the reactions
-            void correctReactions();
+    //- Indicator of the proximity of the interface
+    //  Field values are 1 near and 0 away for the interface.
+    tmp<volScalarField> nearInterface() const;
 
-            //- Correct the species mass fractions
-            void correctSpecies();
+    //- Stabilisation for normalisation of the interface normal
+    inline const dimensionedScalar& deltaN() const;
 
-            //- Predict the momentumTransport
-            void predictMomentumTransport();
+    //- Return the surface tension force
+    tmp<surfaceScalarField> surfaceTension(const phaseModel&) const;
 
-            //- Predict the energy transport e.g. alphat
-            void predictThermophysicalTransport();
-
-            //- Correct the momentumTransport
-            void correctMomentumTransport();
-
-            //- Correct the energy transport e.g. alphat
-            void correctThermophysicalTransport();
-
-            //- Update the fluid properties for mesh changes
-            void meshUpdate();
-
-            //- Correct fixed-flux BCs to be consistent with the velocity BCs
-            void correctBoundaryFlux();
-
-            //- ...
-            void correctPhi
-            (
-                const volScalarField& p_rgh,
-                const autoPtr<volScalarField>& divU,
-                const pressureReference& pressureReference,
-                nonOrthogonalSolutionControl& pimple
-            );
+    //- Return incompressibility
+    bool incompressible() const;
 
 
-        // IO
+    // Evolution
 
-            //- Read base phaseProperties dictionary
-            virtual bool read();
+    //- Returns true if the phase pressure is treated implicitly
+    //  in the phase fraction equations
+    bool implicitPhasePressure() const;
+
+    //- Solve for the phase fractions
+    void solve(const alphaControl& alphaControls,
+               const PtrList<volScalarField>& rAs,
+               const momentumTransferSystem& mts);
+
+    //- Correct the fluid properties other than those listed below
+    void correct();
+
+    //- Correct the continuity errors
+    void correctContinuityError(const PtrList<volScalarField::Internal>& dmdts);
+
+    //- Correct the kinematics
+    void correctKinematics();
+
+    //- Correct the thermodynamics
+    void correctThermo();
+
+    //- Correct the reactions
+    void correctReactions();
+
+    //- Correct the species mass fractions
+    void correctSpecies();
+
+    //- Predict the momentumTransport
+    void predictMomentumTransport();
+
+    //- Predict the energy transport e.g. alphat
+    void predictThermophysicalTransport();
+
+    //- Correct the momentumTransport
+    void correctMomentumTransport();
+
+    //- Correct the energy transport e.g. alphat
+    void correctThermophysicalTransport();
+
+    //- Update the fluid properties for mesh changes
+    void meshUpdate();
+
+    //- Correct fixed-flux BCs to be consistent with the velocity BCs
+    void correctBoundaryFlux();
+
+    //- ...
+    void correctPhi(const volScalarField& p_rgh,
+                    const autoPtr<volScalarField>& divU,
+                    const pressureReference& pressureReference,
+                    nonOrthogonalSolutionControl& pimple);
+
+
+    // IO
+
+    //- Read base phaseProperties dictionary
+    virtual bool read();
 };
 
 
@@ -482,7 +453,7 @@ tmp<surfaceScalarField> byDt(const surfaceScalarField& sf);
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #ifdef NoRepository
-    #include "phaseSystemTemplates.C"
+#include "phaseSystemTemplates.C"
 #endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

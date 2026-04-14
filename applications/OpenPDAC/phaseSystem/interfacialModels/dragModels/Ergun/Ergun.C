@@ -32,46 +32,37 @@ namespace Foam
 {
 namespace dragModels
 {
-    defineTypeNameAndDebug(Ergun, 0);
-    addToRunTimeSelectionTable(dragModel, Ergun, dictionary);
+defineTypeNameAndDebug(Ergun, 0);
+addToRunTimeSelectionTable(dragModel, Ergun, dictionary);
 }
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::dragModels::Ergun::Ergun
-(
-    const dictionary& dict,
-    const phaseInterface& interface,
-    const bool registerObject
-)
-:
-    dispersedDragModel(dict, interface, registerObject)
-{}
+Foam::dragModels::Ergun::Ergun(const dictionary& dict,
+                               const phaseInterface& interface,
+                               const bool registerObject)
+: dispersedDragModel(dict, interface, registerObject)
+{
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::dragModels::Ergun::~Ergun()
-{}
+Foam::dragModels::Ergun::~Ergun() {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 Foam::tmp<Foam::volScalarField> Foam::dragModels::Ergun::CdRe() const
 {
-    const phaseModel& dispersed = interface_.dispersed();
-    const phaseModel& continuous = interface_.continuous();
+    const volScalarField alphaG(
+        max(interface_.continuous(), interface_.continuous().residualAlpha()));
 
-    return
-        (4.0/3.0)
-       *(
-            150
-           *max(dispersed, dispersed.residualAlpha())
-           /max(continuous, continuous.residualAlpha())
-          + 1.75*interface_.Re()
-        );
+    return (4.0 / 3.0)
+         * (150.0 * (scalar(1) - alphaG) / alphaG
+            + 1.75 * max(interface_.Re(), dimensionedScalar(dimless, 0)));
 }
 
 

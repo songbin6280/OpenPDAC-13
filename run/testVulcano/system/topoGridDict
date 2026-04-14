@@ -20,16 +20,18 @@ deform true;
 rasterFile output_file.asc;
 xVent 496665.0;
 yVent 4250680.0;
-interpRelRadius 6.0;  // start from 4 and decrease or increase to get "Face tets OK"
+interpRelRadius 4.0;  // start from 4 and decrease or increase to get "Face tets OK"
 saveSTL false;
 saveBinary true;
+saveCrop true;
 orthogonalCorrection true;
-dist_rel1 0.02;        // relative horizontal distance for vertical displacement only
-dist_rel2 0.05;       // relative horizontal distance for vert+hor displacemente
+dist_rel1 0.05;        // relative horizontal distance for vertical displacement only
+dist_rel2 0.15;       // relative horizontal distance for vert+hor displacemente
 distC1 50.0;          // radial crater distance for vertical displacemente only
-distC2 150.0;         // radial crater distance for vert+hor displacemente only
-coeffVertDeformation 0.4;  // coefficient weighting 2D (0.0) vs 3D (1.0) distance for IDW  
-noDeformCoeff 0.35;    // coefficient for no deformation top vertical layer
+distC2 100.0;         // radial crater distance for vert+hor displacemente only
+coeffVertDeformation 1.0;  // coefficient weighting 2D (0.0) vs 3D (1.0) distance for IDW  
+noDeformCoeff 0.0;    // coefficient for no deformation top vertical layer
+noDeformExp 3.5; 
 // New parameters for negative levels deformation
 // zNeg  ( -100  );   // Depth levels (must be decreasing)
 // dxNeg (  30.0 );  // Horizontal deformation in X at each zNeg
@@ -39,30 +41,30 @@ noDeformCoeff 0.35;    // coefficient for no deformation top vertical layer
 smoothing true;
 
 // Number of iterations for the smoothing algorithm.
-nIter               800;
+nIter               1000;
 
 // Maximum rotation angle (in degrees) to apply in a single rotational
 // smoothing step. A small value (e.g., 1.0) ensures stability.
-maxRotationAngleDeg  1.0;
+maxRotationAngleDeg 0.1;
 
 // The algorithm will stop if the worst non-orthogonality angle
 // in the mesh is below this value (in degrees).
 // E.g., 85 means it will stop if the worst angle is 5 degrees.
-stopOnQualityDeg    50.0;
+stopOnQualityDeg    40.0;
 
 // Frequency of Laplacian smoothing.
 // Every 'laplacianFrequency' iterations, a global Laplacian smoothing
 // step will be performed instead of the rotational step.
 // Set to 0 to disable. A value of 5, 10, or 20 is a good start.
 laplacianFrequency   20;
-laplacianRelaxFactor         0.01;
+laplacianRelaxFactor         0.05;
 
 // Blending factor between standard Laplacian (point-based) and
 // internal influence (cell-center-based).
 // 0.0 = pure standard Laplacian.
 // 1.0 = pure internal cell-center influence.
 // A value around 0.2-0.5 is often a good compromise.
-internalBlending    0.5;
+internalBlending    1.0;
 // ************************************************************************* //
 
 

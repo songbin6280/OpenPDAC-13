@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Version:  dev
+    \\  /    A nd           | Version:  13
      \\/     M anipulation  |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -28,32 +28,31 @@ RAS
         multiParticles          on;
         continuousPhase         air;
         equilibrium             off;
-
-        e                       0.8;
-        alphaMinFriction        0.5;
-        residualAlpha           1e-4;
+        
+        e                       0.97;
+        residualAlpha           1e-9;
 
         granularViscosityModel      Gidaspow;
         granularConductivityModel   Gidaspow;
         granularPressureModel       Lun;
         frictionalStressModel       JohnsonJacksonSchaeffer;
-        radialModel                 SinclairJackson;
-        
-        GidaspowCoeffs
-        {
-            alfa                    1.6;
-        }
 
         JohnsonJacksonSchaefferCoeffs
         {
-            Fr                      0.05;
+            Fr                      0.5;
             eta                     2;
-            p                       5;
-            phi                     28.5;
-            alphaDeltaMin           0.01;
+            p                       3;
+            phi                     28.0;
+            alphaDeltaMin           1e-2;
         }
     }
 
+    phasePressureCoeffs
+    {
+        preAlphaExp     500;
+        expMax          1000;
+        g0              1000;
+    }
 }
 
 

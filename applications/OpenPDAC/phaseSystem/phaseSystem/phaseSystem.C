@@ -40,6 +40,7 @@ License
 #include "movingWallVelocityFvPatchVectorField.H"
 #include "movingWallSlipVelocityFvPatchVectorField.H"
 #include "pressureReference.H"
+#include "radialModel.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -192,6 +193,12 @@ Foam::phaseSystem::phaseSystem(const fvMesh& mesh)
                : cAlphaTable()),
 
   deltaN_("deltaN", 1e-8 / pow(average(mesh_.V()), 1.0 / 3.0)),
+
+  radialModel_(radialModel::New(subDict("kineticProperties"), *this)),
+
+  alphaMinFriction_("alphaMinFriction", dimless, subDict("kineticProperties")),
+
+  alphasThreshold_("alphasThreshold", dimless, subDict("kineticProperties")),
 
   surfaceTensionCoefficientModels_(
       generateInterfacialModels<surfaceTensionCoefficientModel>(
@@ -420,75 +427,115 @@ Foam::word Foam::phaseSystem::continuousPhaseName() const
 
 Foam::tmp<Foam::volScalarField> Foam::phaseSystem::alfasMax() const
 {
-    volScalarField alfasMax(0.0 * movingPhaseModels_[0]);
-    alfasMax += 1.0;
 
-    volScalarField alphas = movingPhaseModels_[0];
+    dimensionedScalar alphaFloor("alphaFloor", dimless, 1e-10);
 
-    volScalarField den(0.0 * movingPhaseModels_[0]);
-    volScalarField cxi(0.0 * movingPhaseModels_[0]);
-    volScalarField Xij(0.0 * movingPhaseModels_[0]);
-    volScalarField pij(0.0 * movingPhaseModels_[0]);
-    volScalarField rij(0.0 * movingPhaseModels_[0]);
-
-
-    alphas *= 0;
+    // 1. Calculate total solid fraction 'alphas' and find the monodisperse
+    // limit
+    volScalarField alphas(0.0 * movingPhaseModels_[0]);
+    scalar minSolidAlphaMax = GREAT;
 
     forAll(phaseModels_, phasei)
     {
         const phaseModel& phase = phaseModels_[phasei];
-
         if (&phase != &phaseModels_[continuousPhaseName_])
         {
-            const volScalarField& alphai = phase;
-            alphas += max(alphai, scalar(0));
+            alphas += max(volScalarField(phase), alphaFloor);
+            if (phase.alphaMax() < minSolidAlphaMax)
+            {
+                minSolidAlphaMax = phase.alphaMax();
+            }
         }
     }
 
-    forAll(phaseModels_, phasei)
+    volScalarField polydisperseAlfasMax(0.0 * movingPhaseModels_[0]);
+
+    volScalarField alfasMax(0.0 * movingPhaseModels_[0]);
+
+    // --- Polydisperse Calculation (only for dense regions) ---
+    // Create a mask for cells where the polydisperse model should be applied
+    volScalarField denseMask(pos(alphas - alphasThreshold_));
+    // If there are any dense cells, perform the full calculation
+    if (gMax(denseMask) > 0.5)
     {
-        if (&phaseModels_[phasei] != &phaseModels_[continuousPhaseName_])
+        polydisperseAlfasMax += 1.0;
 
+        volScalarField den(0.0 * movingPhaseModels_[0]);
+        volScalarField Xij(0.0 * movingPhaseModels_[0]);
+        volScalarField pij(0.0 * movingPhaseModels_[0]);
+        volScalarField rij(0.0 * movingPhaseModels_[0]);
+
+        PtrList<volScalarField> cx(phaseModels_.size());
+        forAll(phaseModels_, phasei)
         {
-            den *= 0.0;
-            cxi = phaseModels_[phasei] / max(alphas, 1e-10);
-
-            forAll(phaseModels_, phasej)
+            const phaseModel& phase = phaseModels_[phasei];
+            if (&phase != &phaseModels_[continuousPhaseName_])
             {
-                if (&phaseModels_[phasej]
-                    != &phaseModels_[continuousPhaseName_])
+                cx.set(
+                    phasei,
+                    new volScalarField(max(volScalarField(phase), alphaFloor)));
+            }
+        }
+
+        forAll(cx, i)
+        {
+            if (cx.set(i))
+            {
+                cx[i] /= (alphas + 1e-10);
+            }
+        }
+
+        forAll(phaseModels_, phasei)
+        {
+            if (&phaseModels_[phasei] != &phaseModels_[continuousPhaseName_])
+            {
+                den *= 0.0;
+
+                forAll(phaseModels_, phasej)
                 {
-                    volScalarField di = phaseModels_[phasei].d();
-                    volScalarField dj = phaseModels_[phasej].d();
-                    rij = pos0(di - dj) * dj / di + neg(di - dj) * di / dj;
-
-                    pij = phaseModels_[phasei].alphaMax();
-                    pij += neg(rij - 0.741)
-                         * (phaseModels_[phasei].alphaMax()
-                            * (1 - phaseModels_[phasei].alphaMax())
-                            * (1 - 2.35 * rij + 1.35 * sqr(rij)));
-
-                    Xij = (1.0 - sqr(rij))
-                        / (2.0 - phaseModels_[phasei].alphaMax());
-
-                    Xij = pos(dj - di) * Xij + neg0(dj - di) * (1.0 - Xij);
-
-                    if (phasej == phasei)
+                    if (&phaseModels_[phasej]
+                        != &phaseModels_[continuousPhaseName_])
                     {
-                        den += scalar(1.0);
-                    }
-                    else
-                    {
-                        den -= (1 - phaseModels_[phasei].alphaMax() / pij) * cxi
-                             / Xij;
+                        volScalarField di = phaseModels_[phasei].d();
+                        volScalarField dj = phaseModels_[phasej].d();
+                        rij = pos0(di - dj) * dj / di + neg(di - dj) * di / dj;
+
+                        pij = phaseModels_[phasei].alphaMax();
+                        pij += neg(rij - 0.741)
+                             * (phaseModels_[phasei].alphaMax()
+                                * (1 - phaseModels_[phasei].alphaMax())
+                                * (1 - 2.35 * rij + 1.35 * sqr(rij)));
+
+                        Xij = (1.0 - sqr(rij))
+                            / (2.0 - phaseModels_[phasei].alphaMax());
+
+                        Xij = pos(dj - di) * Xij + neg0(dj - di) * (1.0 - Xij);
+
+                        if (phasej == phasei)
+                        {
+                            den += scalar(1.0);
+                        }
+                        else
+                        {
+                            den -= (1 - phaseModels_[phasei].alphaMax() / pij)
+                                 * cx[phasej] / Xij;
+                        }
                     }
                 }
+                volScalarField alfasMaxi =
+                    phaseModels_[phasei].alphaMax() * max(1.0, 1.0 / den);
+
+                polydisperseAlfasMax = min(polydisperseAlfasMax, alfasMaxi);
             }
-            volScalarField alfasMaxi =
-                phaseModels_[phasei].alphaMax() * max(1.0, 1.0 / den);
-            alfasMax = min(alfasMax, alfasMaxi);
         }
     }
+    else
+    {
+        polydisperseAlfasMax = minSolidAlphaMax;
+    }
+
+    alfasMax = pos0(alphas - alphasThreshold_) * polydisperseAlfasMax
+             + neg(alphas - alphasThreshold_) * minSolidAlphaMax;
 
     Info << "alphasMax, min, max = " << min(alfasMax).value() << " "
          << max(alfasMax).value() << endl;

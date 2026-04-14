@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -28,15 +29,11 @@ License
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
 
 Foam::autoPtr<Foam::kineticTheoryModels::viscosityModel>
-Foam::kineticTheoryModels::viscosityModel::New
-(
-    const dictionary& dict
-)
+Foam::kineticTheoryModels::viscosityModel::New(const dictionary& dict)
 {
     const word viscosityModelType(dict.lookup("granularViscosityModel"));
 
-    Info<< "Selecting granularViscosityModel "
-        << viscosityModelType << endl;
+    Info << "Selecting granularViscosityModel " << viscosityModelType << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(viscosityModelType);
@@ -44,8 +41,9 @@ Foam::kineticTheoryModels::viscosityModel::New
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
         FatalIOErrorInFunction(dict)
-            << "Unknown granularViscosityModel type "
-            << viscosityModelType << endl << endl
+            << "Unknown granularViscosityModel type " << viscosityModelType
+            << endl
+            << endl
             << "Valid granularViscosityModel types are :" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalIOError);

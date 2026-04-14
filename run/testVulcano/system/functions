@@ -16,7 +16,7 @@ FoamFile
 
 // #includeFunc residuals(p_rgh, h.particles, h.gas)
 
-
+/*
 writeFields
 {
     type        writeObjects;
@@ -29,6 +29,7 @@ writeFields
     writeControl    adjustableRunTime;
     writeInterval   0.1;
 }
+*/
 
 #include "cutPlane"
 #include "sampleSurface"

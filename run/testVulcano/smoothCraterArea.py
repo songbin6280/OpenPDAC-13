@@ -132,7 +132,6 @@ def main():
     # Input and output file paths
     
     DEM_path = "./constant/DEM/"
-
     input_asc = "dsm_vulc_5m.asc"
     output_asc = "output_file.asc"
     output_plot = "modified_points.png"

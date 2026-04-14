@@ -24,6 +24,8 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "phaseSystem.H"
+#include "radialModel.H"
+
 
 // * * * * * * * * * * * * * * * Global Functions  * * * * * * * * * * * * * //
 
@@ -35,19 +37,13 @@ namespace Foam
 template<class Type>
 class wordListAndType
 {
-    public:
+public:
+    wordList wl;
+    Type t;
 
-        wordList wl;
-        Type t;
+    wordListAndType() {}
 
-        wordListAndType()
-        {}
-
-        wordListAndType(Istream& is)
-        :
-            wl(is),
-            t(is)
-        {}
+    wordListAndType(Istream& is) : wl(is), t(is) {}
 };
 
 template<class Type>
@@ -63,21 +59,15 @@ inline Ostream& operator<<(Ostream& os, const wordListAndType<Type>& wlat)
 }
 
 template<class Type>
-inline bool operator==
-(
-    const wordListAndType<Type>& a,
-    const wordListAndType<Type>& b
-)
+inline bool operator==(const wordListAndType<Type>& a,
+                       const wordListAndType<Type>& b)
 {
     return a.wl == b.wl && a.t == b.t;
 }
 
 template<class Type>
-inline bool operator!=
-(
-    const wordListAndType<Type>& a,
-    const wordListAndType<Type>& b
-)
+inline bool operator!=(const wordListAndType<Type>& a,
+                       const wordListAndType<Type>& b)
 {
     return !(a == b);
 }
@@ -88,10 +78,7 @@ inline bool operator!=
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-inline const Foam::fvMesh& Foam::phaseSystem::mesh() const
-{
-    return mesh_;
-}
+inline const Foam::fvMesh& Foam::phaseSystem::mesh() const { return mesh_; }
 
 
 inline const Foam::pimpleNoLoopControl& Foam::phaseSystem::pimple() const
@@ -107,8 +94,7 @@ Foam::phaseSystem::phases() const
 }
 
 
-inline Foam::phaseSystem::phaseModelList&
-Foam::phaseSystem::phases()
+inline Foam::phaseSystem::phaseModelList& Foam::phaseSystem::phases()
 {
     return phaseModels_;
 }
@@ -170,10 +156,8 @@ Foam::phaseSystem::multicomponentPhases()
 }
 
 
-inline const Foam::phaseModel& Foam::phaseSystem::otherPhase
-(
-    const phaseModel& phase
-) const
+inline const Foam::phaseModel&
+Foam::phaseSystem::otherPhase(const phaseModel& phase) const
 {
     if (phaseModels_.size() != 2)
     {
@@ -199,10 +183,7 @@ inline const Foam::surfaceScalarField& Foam::phaseSystem::phi() const
 }
 
 
-inline Foam::surfaceScalarField& Foam::phaseSystem::phi()
-{
-    return phi_;
-}
+inline Foam::surfaceScalarField& Foam::phaseSystem::phi() { return phi_; }
 
 
 inline const Foam::volScalarField& Foam::phaseSystem::dpdt() const
@@ -211,10 +192,7 @@ inline const Foam::volScalarField& Foam::phaseSystem::dpdt() const
 }
 
 
-inline Foam::volScalarField& Foam::phaseSystem::dpdt()
-{
-    return dpdt_;
-}
+inline Foam::volScalarField& Foam::phaseSystem::dpdt() { return dpdt_; }
 
 
 inline const Foam::IOMRFZoneList& Foam::phaseSystem::MRF() const
@@ -253,6 +231,25 @@ inline const Foam::dimensionedScalar& Foam::phaseSystem::deltaN() const
 }
 
 
+inline const Foam::radialModel& Foam::phaseSystem::radial() const
+{
+    return radialModel_();
+}
+
+
+inline const Foam::dimensionedScalar&
+Foam::phaseSystem::alphaMinFriction() const
+{
+    return alphaMinFriction_;
+}
+
+
+inline const Foam::dimensionedScalar& Foam::phaseSystem::alphasThreshold() const
+{
+    return alphasThreshold_;
+}
+
+
 // * * * * * * * * * * * * * * * Global Functions  * * * * * * * * * * * * * //
 
 namespace Foam
@@ -261,13 +258,10 @@ namespace Foam
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 template<class GeoField>
-inline void addField
-(
-    const label phasei,
-    const word& name,
-    tmp<GeoField> field,
-    PtrList<GeoField>& fieldList
-)
+inline void addField(const label phasei,
+                     const word& name,
+                     tmp<GeoField> field,
+                     PtrList<GeoField>& fieldList)
 {
     if (fieldList.set(phasei))
     {
@@ -275,27 +269,19 @@ inline void addField
     }
     else
     {
-        fieldList.set
-        (
+        fieldList.set(
             phasei,
-            new GeoField
-            (
-                name, // IOobject::groupName(name, group.name()),
-                field
-            )
-        );
+            new GeoField(name, // IOobject::groupName(name, group.name()),
+                         field));
     }
 }
 
 
 template<class GeoField, class Group>
-inline void addField
-(
-    const Group& group,
-    const word& name,
-    tmp<GeoField> field,
-    PtrList<GeoField>& fieldList
-)
+inline void addField(const Group& group,
+                     const word& name,
+                     tmp<GeoField> field,
+                     PtrList<GeoField>& fieldList)
 {
     if (fieldList.set(group.index()))
     {
@@ -303,40 +289,28 @@ inline void addField
     }
     else
     {
-        fieldList.set
-        (
+        fieldList.set(
             group.index(),
-            new GeoField
-            (
-                IOobject::groupName(name, group.name()),
-                field
-            )
-        );
+            new GeoField(IOobject::groupName(name, group.name()), field));
     }
 }
 
 
 template<class GeoField, class Group>
-inline void addField
-(
-    const Group& group,
-    const word& name,
-    const GeoField& field,
-    PtrList<GeoField>& fieldList
-)
+inline void addField(const Group& group,
+                     const word& name,
+                     const GeoField& field,
+                     PtrList<GeoField>& fieldList)
 {
     addField(group, name, tmp<GeoField>(field), fieldList);
 }
 
 
 template<class GeoField, class Group>
-inline void addField
-(
-    const Group& group,
-    const word& name,
-    tmp<GeoField> field,
-    HashPtrTable<GeoField>& fieldTable
-)
+inline void addField(const Group& group,
+                     const word& name,
+                     tmp<GeoField> field,
+                     HashPtrTable<GeoField>& fieldTable)
 {
     if (fieldTable.found(group.name()))
     {
@@ -344,50 +318,39 @@ inline void addField
     }
     else
     {
-        fieldTable.set
-        (
+        fieldTable.set(
             group.name(),
-            new GeoField
-            (
-                IOobject::groupName(name, group.name()),
-                field
-            )
-        );
+            new GeoField(IOobject::groupName(name, group.name()), field));
     }
 }
 
 
 template<class GeoField, class Group>
-inline void addField
-(
-    const Group& group,
-    const word& name,
-    const GeoField& field,
-    HashPtrTable<GeoField>& fieldTable
-)
+inline void addField(const Group& group,
+                     const word& name,
+                     const GeoField& field,
+                     HashPtrTable<GeoField>& fieldTable)
 {
     addField(group, name, tmp<GeoField>(field), fieldTable);
 }
 
 
 template<class Type, class GeoMesh>
-PtrList<GeometricField<Type, GeoMesh>> operator&
-(
-    const PtrList<PtrList<GeometricField<scalar, GeoMesh>>>& As,
-    const UPtrList<GeometricField<Type, GeoMesh>>& fs
-)
+PtrList<GeometricField<Type, GeoMesh>>
+operator&(const PtrList<PtrList<GeometricField<scalar, GeoMesh>>>& As,
+          const UPtrList<GeometricField<Type, GeoMesh>>& fs)
 {
     PtrList<GeometricField<Type, GeoMesh>> Afs(fs.size());
 
     forAll(Afs, i)
     {
-        Afs.set(i, As[i][i]*fs[i]);
+        Afs.set(i, As[i][i] * fs[i]);
 
         forAll(Afs, j)
         {
             if (j != i)
             {
-                Afs[i] += As[i][j]*fs[j];
+                Afs[i] += As[i][j] * fs[j];
             }
         }
     }

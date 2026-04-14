@@ -23,47 +23,48 @@ ddtSchemes
 gradSchemes
 {
     // default     Gauss linear;
-    default         cellLimited<cubic> 1.5 Gauss linear 1;              //Cubic gradient limiter
-    
+    //    default         cellLimited<cubic> 1.5 Gauss linear 1;              //Cubic gradient limiter
+    default        cellLimited leastSquares 1.0;    
+
 }
 
 divSchemes
 {
     default                         none;
 
-    // "div\(phi,alpha.*\)"            Gauss vanLeer;
-    // "div\(phir,alpha.*\)"           Gauss vanLeer;
-    "div\(phi,alpha.*\)"            Gauss limitedLinear 1;;
-    "div\(phir,alpha.*\)"           Gauss limitedLinear 1;;
+    "div\(phi,alpha.*\)"            Gauss vanLeer;
+    "div\(phir,alpha.*\)"           Gauss vanLeer;
+    //"div\(phi,alpha.*\)"            Gauss limitedLinear 1;;
+    //"div\(phir,alpha.*\)"           Gauss limitedLinear 1;;
     // "div\(phi,alpha.*\)"            Gauss limitedLinear01 1;;
     // "div\(phir,alpha.*\)"           Gauss limitedLinear01 1;;
 
-    "div\(alphaRhoPhi.*,Yi\)"             Gauss limitedLinear 1;
+    "div\(alphaRhoPhi.*,Yi\)"             Gauss vanLeer;
     // "div\(alphaRhoPhi.*,Yi\)"             Gauss limitedLinear01 1;;
 
 
     // "div\(alphaRhoPhi.*,U.*\)"      Gauss limitedLinearV 1;
     // "div\(phi.*,U.*\)"              Gauss limitedLinearV 1;
 
-    "div\(alphaRhoPhi.*,U.*\)"      Gauss linearUpwind default;
-    "div\(phi.*,U.*\)"              Gauss linearUpwind default;
+    "div\(alphaRhoPhi.*,U.*\)"      Gauss limitedLinearV 0.5;
+    "div\(phi.*,U.*\)"              Gauss limitedLinearV 0.5;
 
-    "div\(alphaPhi.*,p\)"           Gauss linearUpwind default; 
+    "div\(alphaPhi.*,p\)"           Gauss vanLeer; 
 
     // "div\(alphaRhoPhi.*,(h|e).*\)"  Gauss limitedLinear 1;
-    "div\(alphaRhoPhi.*,(h|e).*\)"  Gauss linearUpwind default;
+    "div\(alphaRhoPhi.*,(h|e).*\)"  Gauss vanLeer;
 
     // "div\(alphaRhoPhi.*,K.*\)"      Gauss limitedLinear 1;
-    "div\(alphaRhoPhi.*,K.*\)"      Gauss linearUpwind default;
+    "div\(alphaRhoPhi.*,K.*\)"      Gauss upwind;
 
     // div(alphaRhoPhi,(p|rho)) Gauss limitedLinear 1;
-    div(alphaRhoPhi,(p|rho)) Gauss linearUpwind default;
+    div(alphaRhoPhi,(p|rho)) Gauss vanLeer;
     
     // div(alphaRhoPhi.particles,Theta.particles) Gauss limitedLinear 1;
-    div(alphaRhoPhi.particles,Theta.particles) Gauss linearUpwind default;
+    div(alphaRhoPhi.particles,Theta.particles) Gauss vanLeer;
 
     // "div\(alphaRhoPhi.*,(k|epsilon).*\)"  Gauss limitedLinear 1;
-    "div\(alphaRhoPhi.*,(k|epsilon).*\)"  Gauss linearUpwind default;
+    "div\(alphaRhoPhi.*,(k|epsilon).*\)"  Gauss upwind;
 
     // div((((alpha.gas*thermo:rho.gas)*nuEff.gas)*dev2(T(grad(U.gas))))) Gauss linear;
     div((((alpha.gas*thermo:rho.gas)*nuEff.gas)*dev2(T(grad(U.gas))))) Gauss linear 1;
@@ -82,8 +83,8 @@ divSchemes
 
 laplacianSchemes
 {
-    // default     Gauss linear uncorrected;
-    default     Gauss linear limited corrected 0.5;
+    default     Gauss linear corrected;
+    //default     Gauss linear limited corrected 0.5;
 }
 
 interpolationSchemes

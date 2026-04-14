@@ -30,7 +30,7 @@ Five test cases are provided:
 - a 2D impinging flow with two solid phases.
 
 This version is based on the Ubuntu package:
-openfoam13_20250911_amd64.deb
+openfoam13_20260212_amd64.deb
 
 This code is not approved not endorsed by the OpenFOAM Foundation or
 by ESI Ltd, the owner of OpenFOAM.

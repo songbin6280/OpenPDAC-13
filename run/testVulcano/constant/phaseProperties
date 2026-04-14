@@ -27,7 +27,7 @@ particles
     diameterModel constant;
     constantCoeffs
     {
-        d               1e-4;
+        d               1e-3;
     }
 
     alphaMax        0.67;
@@ -60,6 +60,12 @@ surfaceTension
     }
 }
 
+kineticProperties
+{
+    radialModel         SinclairJackson;
+    alphaMinFriction    0.5;
+    alphasThreshold     1e-3;
+}
 
 phaseTransfer
 {}

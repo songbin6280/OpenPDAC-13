@@ -43,7 +43,7 @@ echo "--> Cleaning up previous ballistic raster maps..."
 rm -rf postProcessing/raster_maps/ballistics
 
 echo "--> Generating ballistic trajectory plots with plotBallistics.py..."
-python3 plotBallistics.py
+#python3 plotBallistics.py > log.plotBallistics
 
 
 # --- TASK 2: CREATE RASTER MAPS OF THE FLOW ---
@@ -53,7 +53,7 @@ rm -rf postProcessing/raster_maps/flow
 
 echo "--> Creating final raster maps with createMaps.py..."
 # This script also appears to process data in parallel. Adjust --np as needed.
-python3 createMaps.py -np 64
+#python3 createMaps.py -np 10 > log.createMaps
 
 # --- TASK 3: GENERATE ISOSURFACE PLOTS ---
 
@@ -63,7 +63,7 @@ rm -rf postProcessing/frames_png
 echo "--> Generating isosurface plots with plotIso.py..."
 # This script may process data in parallel. Ensure the number of processors
 # (--np) matches a relevant setting for your case or script logic.
-python3 plotIso.py --np 32 --fr 5
+python3 plotIso.py --np 10 --fr 10 --ps 50 > log.plotiso
 
 
 # =========================================================================

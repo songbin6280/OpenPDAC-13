@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -28,15 +29,12 @@ License
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
 
 Foam::autoPtr<Foam::kineticTheoryModels::granularPressureModel>
-Foam::kineticTheoryModels::granularPressureModel::New
-(
-    const dictionary& dict
-)
+Foam::kineticTheoryModels::granularPressureModel::New(const dictionary& dict)
 {
     const word granularPressureModelType(dict.lookup("granularPressureModel"));
 
-    Info<< "Selecting granularPressureModel "
-        << granularPressureModelType << endl;
+    Info << "Selecting granularPressureModel " << granularPressureModelType
+         << endl;
 
     dictionaryConstructorTable::iterator cstrIter =
         dictionaryConstructorTablePtr_->find(granularPressureModelType);
@@ -45,7 +43,8 @@ Foam::kineticTheoryModels::granularPressureModel::New
     {
         FatalIOErrorInFunction(dict)
             << "Unknown granularPressureModel type "
-            << granularPressureModelType << endl << endl
+            << granularPressureModelType << endl
+            << endl
             << "Valid granularPressureModel types are :" << endl
             << dictionaryConstructorTablePtr_->sortedToc()
             << exit(FatalIOError);

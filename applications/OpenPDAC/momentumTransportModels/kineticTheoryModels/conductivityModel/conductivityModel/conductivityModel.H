@@ -52,46 +52,34 @@ class conductivityModel
 {
     // Private member functions
 
-        //- Read the coefficients from coeffDict
-        virtual bool readCoeffs(const dictionary& coeffDict)
-        {
-            return true;
-        }
+    //- Read the coefficients from coeffDict
+    virtual bool readCoeffs(const dictionary& coeffDict) { return true; }
 
 
 public:
-
     //- Runtime type information
     TypeName("conductivityModel");
 
     // Declare runtime constructor selection table
-    declareRunTimeSelectionTable
-    (
-        autoPtr,
-        conductivityModel,
-        dictionary,
-        (
-            const dictionary& dict
-        ),
-        (dict)
-    );
+    declareRunTimeSelectionTable(autoPtr,
+                                 conductivityModel,
+                                 dictionary,
+                                 (const dictionary& dict),
+                                 (dict));
 
 
     // Constructors
 
-        //- Construct from the coefficients dictionary
-        conductivityModel(const dictionary& coeffDict);
+    //- Construct from the coefficients dictionary
+    conductivityModel(const dictionary& coeffDict);
 
-        //- Disallow default bitwise copy construction
-        conductivityModel(const conductivityModel&) = delete;
+    //- Disallow default bitwise copy construction
+    conductivityModel(const conductivityModel&) = delete;
 
 
     // Selectors
 
-        static autoPtr<conductivityModel> New
-        (
-            const dictionary& dict
-        );
+    static autoPtr<conductivityModel> New(const dictionary& dict);
 
 
     //- Destructor
@@ -100,38 +88,24 @@ public:
 
     // Member Functions
 
-        //- Read the coefficients from the optional ".*Coeffs" sub-dictionary
-        //  of the given dictionary
-        bool read(const dictionary& dict);
-        
-        virtual tmp<volScalarField> kappa
-        (
-            const volScalarField& alpha1,
-            const volScalarField& Theta,
-            const volScalarField& g0,
-            const volScalarField& beta,
-            const volScalarField& rho1,
-            const volScalarField& da,
-            const dimensionedScalar& e
-        ) const = 0;
+    //- Read the coefficients from the optional ".*Coeffs" sub-dictionary
+    //  of the given dictionary
+    bool read(const dictionary& dict);
 
-        virtual tmp<volScalarField> kappa
-        (
-            const volScalarField& alpha1,
-            const volScalarField& Theta,
-            const volScalarField& g0,
-            const volScalarField& sumAlphaGs0,
-            const volScalarField& beta,
-            const volScalarField& rho1,
-            const volScalarField& da,
-            const dimensionedScalar& e
-        ) const = 0;
+    virtual tmp<volScalarField> kappa(const volScalarField& alpha1,
+                                      const volScalarField& Theta,
+                                      const volScalarField& g0,
+                                      const volScalarField& sumAlphaGs0,
+                                      const volScalarField& beta,
+                                      const volScalarField& rho1,
+                                      const volScalarField& da,
+                                      const dimensionedScalar& e) const = 0;
 
 
     // Member Operators
 
-        //- Disallow default bitwise assignment
-        void operator=(const conductivityModel&) = delete;
+    //- Disallow default bitwise assignment
+    void operator=(const conductivityModel&) = delete;
 };
 
 

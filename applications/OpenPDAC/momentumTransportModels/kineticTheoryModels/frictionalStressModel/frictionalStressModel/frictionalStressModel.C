@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -31,40 +32,34 @@ namespace Foam
 {
 namespace kineticTheoryModels
 {
-    defineTypeNameAndDebug(frictionalStressModel, 0);
+defineTypeNameAndDebug(frictionalStressModel, 0);
 
-    defineRunTimeSelectionTable(frictionalStressModel, dictionary);
+defineRunTimeSelectionTable(frictionalStressModel, dictionary);
 }
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::kineticTheoryModels::frictionalStressModel::frictionalStressModel
-(
-    const dictionary& coeffDict
-)
-{}
+Foam::kineticTheoryModels::frictionalStressModel::frictionalStressModel(
+    const dictionary& coeffDict)
+{
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::kineticTheoryModels::frictionalStressModel::~frictionalStressModel()
-{}
+Foam::kineticTheoryModels::frictionalStressModel::~frictionalStressModel() {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool Foam::kineticTheoryModels::frictionalStressModel::read
-(
-    const dictionary& dict
-)
+bool Foam::kineticTheoryModels::frictionalStressModel::read(
+    const dictionary& dict)
 {
-    const dictionary& coeffDict =
-        dict.optionalSubDict(type() + "Coeffs");
+    const dictionary& coeffDict = dict.optionalSubDict(type() + "Coeffs");
     return readCoeffs(coeffDict);
 }
 
 
 // ************************************************************************* //
-

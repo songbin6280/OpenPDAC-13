@@ -107,11 +107,19 @@ protected:
     //  Defaults to false
     Switch lowPressureTimestepCorrection;
 
+    //- Timestep control based on temperature oscillations
+    //  Defaults to false
+    Switch tempOscillationControl_;
+    scalar maxTempOscillation_;
+    scalar tempOscillationFactor_;
+
     scalar innerResidual;
 
     scalar nonOrthogonalResidual;
 
     scalar residualRatio;
+
+    label minOuterCorrectors;
 
     scalar prevPimpleInitialResidual_;
 
@@ -121,10 +129,19 @@ protected:
 
     label pimpleIter;
 
+    //- Temperature oscillation tracking
+    List<scalar> minTempMin_;
+    List<scalar> maxTempMin_;
+    List<scalar> sumTempMin_;
+    List<label> pimpleTempIterCount_;
+
     label nMaxEnergyCorrectors;
 
-    //- Switch per attivare/disattivare il rilassamento di Aitken
+    //- Switch to enable/disable Aitken's relaxation
     Switch useAitkenRelaxation_;
+
+    //- Flag to indicate mesh is changing in the current time-step
+    bool isMeshChanging_;
 
     //- Buoyancy force
     solvers::buoyancy buoyancy;

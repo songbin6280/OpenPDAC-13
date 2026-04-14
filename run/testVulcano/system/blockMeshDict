@@ -38,8 +38,8 @@ codeInclude
     layer_fraction[$n_vert_layers] = 1.0;            
     scalar delta_z($dz_ratio);
 
-    scalar c_bottom = $dz_to_dxy_crater_ratio;
-    scalar c_top = $dz_to_dxy_atm_ratio; 
+    scalar c_bottom = atmCells_aspect_ratio_bottom[0];
+    scalar c_top = atmCells_aspect_ratio_top[0]; 
     scalar dz_bottom = $crater_cell_size * c_bottom;
     scalar dz_top = $hor_cell_size_topo * c_top;
 
@@ -262,7 +262,6 @@ codeInclude
 
     // --- Basic Calculations ---
     scalar radAngle = degToRad($degAngle); // 45 deg
-    scalar pi = Foam::constant::mathematical::pi;
     scalar conduit_base_z = -1.0 * ($h_conduit + $h_crater);
     scalar crater_base_z = -1.0 * $h_crater;
 
@@ -441,20 +440,13 @@ codeInclude
     */
 
     // ... (nz calculations remain the same) ...
-    int nz_conduit = 0;
-    if ($h_conduit > 0)
-    {
-        nz_conduit =
-            round(($h_conduit * 8.0 * n_crater) / (2.0 * pi * r_cond_base));
-        nz_conduit = Foam::max(1, nz_conduit);
-    }
 
     // Compute the grading and vertical number of cells in crater
 
     scalar dz_top_crater =
-        $dz_to_dxy_crater_ratio * r_cr_top / (2.0 * n_crater);
+        atmCells_aspect_ratio_bottom[0] * r_cr_top / (2.0 * n_crater);
     scalar dz_bottom_crater =
-        $dz_to_dxy_crater_ratio * r_cr_base / (2.0 * n_crater);
+        atmCells_aspect_ratio_bottom[0] * r_cr_base / (2.0 * n_crater);
     int nz_crater = 1;
     scalar z_crater_grading = 1.0;
 
@@ -466,12 +458,21 @@ codeInclude
     Info << "Calculated nz_crater = " << nz_crater
          << ", z_crater_grading = " << z_crater_grading << endl;
 
+
+    int nz_conduit = 0;
+    if ($h_conduit > 0)
+    {
+        nz_conduit =
+            round( $h_conduit / dz_bottom_crater );
+        nz_conduit = Foam::max(1, nz_conduit);
+    }
+
     // Compute the grading and vertical number of cells in first layer
     scalar dz_atm_min = dz_top_crater;
     os << "dz_atm_min " << dz_atm_min << ";" << endl;
     Info << "dz_atm_min " << dz_atm_min << ";" << endl;
 
-    scalar dz_atm_max = hor_cell_size_top_atm * $dz_to_dxy_atm_ratio
+    scalar dz_atm_max = hor_cell_size_top_atm * atmCells_aspect_ratio_top[0]
         / pow(2, $n_vert_layers - 1);
     os << "dz_atm_max " << dz_atm_max << ";" << endl;
     Info << "dz_atm_max " << dz_atm_max << ";" << endl;

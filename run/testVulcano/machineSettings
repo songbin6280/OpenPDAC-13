@@ -1,0 +1,40 @@
+#!/bin/sh
+
+if [ "$machineNAME" == "vesuvio" ]; then
+    echo "Using VESUVIO  machine settings"      
+    export mpiRUN='mpirun'
+    echo "mpiRun set"
+    module purge
+    module load openfoam/13
+    echo "openFOAM 13 module loaded"
+
+    if [ -z "$WM_PROJECT_DIR" ]; then
+        echo "FATAL ERROR: The openfoam/13 module did not set WM_PROJECT_DIR." >&2
+        exit 1 # Esce con un errore chiaro
+    fi
+
+    if [ -f "$WM_PROJECT_DIR/etc/bashrc" ]; then
+        echo "--- DEBUG: Sourcing OpenFOAM bashrc ---"
+        source "$WM_PROJECT_DIR/etc/bashrc" || true
+        echo "OpenFOAM environment sourced from WM_PROJECT_DIR."
+    else
+        echo "FATAL ERROR: Could not find OpenFOAM bashrc at $WM_PROJECT_DIR/etc/bashrc" >&2
+        exit 1
+    fi
+
+elif [ "$machineNAME" == "lumi" ]; then
+    echo "Using LUMI  machine settings"
+    # export PYTHON_ENV_PATH="/project/project_465001219/pythonEnvs/OpenPDAC/bin/activate"
+    # export OPENPDAC_BASHRC="/project/project_465001219/gitRepositories/myopenpdac-11/etc/bashrc"
+    export mpiRUN='srun'
+    export pythonCMD='python3'
+    module use /appl/local/csc/modulefiles
+    #module load openfoam/12
+    export EBU_USER_PREFIX=/project/project_465001878/EasyBuild
+    module load LUMI/24.03
+    module load partition/L
+    module load OpenFOAM/13-cpeGNU-24.03-master
+    
+else
+        error "Unknow machine name, possible options: vesuvio, lumi"
+fi

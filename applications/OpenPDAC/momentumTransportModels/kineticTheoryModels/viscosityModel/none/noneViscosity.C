@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -34,8 +35,8 @@ namespace kineticTheoryModels
 {
 namespace viscosityModels
 {
-    defineTypeNameAndDebug(none, 0);
-    addToRunTimeSelectionTable(viscosityModel, none, dictionary);
+defineTypeNameAndDebug(none, 0);
+addToRunTimeSelectionTable(viscosityModel, none, dictionary);
 }
 }
 }
@@ -43,51 +44,22 @@ namespace viscosityModels
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::kineticTheoryModels::viscosityModels::none::none
-(
-    const dictionary& coeffDict
-)
-:
-    viscosityModel(coeffDict)
-{}
+Foam::kineticTheoryModels::viscosityModels::none::none(
+    const dictionary& coeffDict)
+: viscosityModel(coeffDict)
+{
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::kineticTheoryModels::viscosityModels::none::~none()
-{}
+Foam::kineticTheoryModels::viscosityModels::none::~none() {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 Foam::tmp<Foam::volScalarField>
-Foam::kineticTheoryModels::viscosityModels::none::nu
-(
-    const volScalarField& alpha1,
-    const volScalarField& Theta,
-    const dimensionedScalar& ThetaSmall,
-    const volScalarField& g0,
-    const volScalarField& beta,
-    const volScalarField& rho1,
-    const volScalarField& da,
-    const dimensionedScalar& e
-) const
-{
-    return volScalarField::New
-    (
-        IOobject::groupName
-        (
-            Foam::typedName<viscosityModel>("nu"),
-            Theta.group()
-        ),
-        alpha1.mesh(),
-        dimensionedScalar(dimArea/dimTime, 0)
-    );
-}
-
-Foam::tmp<Foam::volScalarField>
-Foam::kineticTheoryModels::viscosityModels::none::nu
-(
+Foam::kineticTheoryModels::viscosityModels::none::nu(
     const volScalarField& alpha1,
     const volScalarField& Theta,
     const dimensionedScalar& ThetaSmall,
@@ -96,19 +68,13 @@ Foam::kineticTheoryModels::viscosityModels::none::nu
     const volScalarField& beta,
     const volScalarField& rho1,
     const volScalarField& da,
-    const dimensionedScalar& e
-) const
+    const dimensionedScalar& e) const
 {
-    return volScalarField::New
-    (
-        IOobject::groupName
-        (
-            Foam::typedName<viscosityModel>("nu"),
-            Theta.group()
-        ),
+    return volScalarField::New(
+        IOobject::groupName(Foam::typedName<viscosityModel>("nu"),
+                            Theta.group()),
         alpha1.mesh(),
-        dimensionedScalar(dimArea/dimTime, 0)
-    );
+        dimensionedScalar(dimArea / dimTime, 0));
 }
 
 // ************************************************************************* //

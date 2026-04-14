@@ -62,4 +62,11 @@ surfaceTension
     }
 };
 
+kineticProperties
+{
+    radialModel         SinclairJackson;
+    alphaMinFriction    0.58;
+    alphasThreshold     1e-3;
+}
+
 // ************************************************************************* //

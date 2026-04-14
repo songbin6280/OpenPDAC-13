@@ -6,7 +6,8 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file is part of OpenFOAM.
+    This file is part of OpenPDAC.
+    This file was derived from the multiphaseEuler solver in OpenFOAM.
 
     OpenFOAM is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
@@ -54,46 +55,31 @@ class viscosityModel
 {
     // Private member functions
 
-        //- Read the coefficients from coeffDict
-        virtual bool readCoeffs(const dictionary& coeffDict)
-        {
-            return true;
-        }
+    //- Read the coefficients from coeffDict
+    virtual bool readCoeffs(const dictionary& coeffDict) { return true; }
 
 
 public:
-
     //- Runtime type information
     TypeName("viscosityModel");
 
     // Declare runtime constructor selection table
-    declareRunTimeSelectionTable
-    (
-        autoPtr,
-        viscosityModel,
-        dictionary,
-        (
-            const dictionary& dict
-        ),
-        (dict)
-    );
+    declareRunTimeSelectionTable(
+        autoPtr, viscosityModel, dictionary, (const dictionary& dict), (dict));
 
 
     // Constructors
 
-        //- Construct from the coefficients dictionary
-        viscosityModel(const dictionary& coeffDict);
+    //- Construct from the coefficients dictionary
+    viscosityModel(const dictionary& coeffDict);
 
-        //- Disallow default bitwise copy construction
-        viscosityModel(const viscosityModel&) = delete;
+    //- Disallow default bitwise copy construction
+    viscosityModel(const viscosityModel&) = delete;
 
 
     // Selectors
 
-        static autoPtr<viscosityModel> New
-        (
-            const dictionary& dict
-        );
+    static autoPtr<viscosityModel> New(const dictionary& dict);
 
 
     //- Destructor
@@ -102,40 +88,25 @@ public:
 
     // Member Functions
 
-        //- Read the coefficients from the optional ".*Coeffs" sub-dictionary
-        //  of the given dictionary
-        bool read(const dictionary& dict);
+    //- Read the coefficients from the optional ".*Coeffs" sub-dictionary
+    //  of the given dictionary
+    bool read(const dictionary& dict);
 
-        virtual tmp<volScalarField> nu
-        (
-            const volScalarField& alpha1,
-            const volScalarField& Theta,
-            const dimensionedScalar& ThetaSmall,
-            const volScalarField& g0,
-            const volScalarField& beta,
-            const volScalarField& rho1,
-            const volScalarField& da,
-            const dimensionedScalar& e
-        ) const = 0;
-
-        virtual tmp<volScalarField> nu
-        (
-            const volScalarField& alpha1,
-            const volScalarField& Theta,
-            const dimensionedScalar& ThetaSmall,
-            const volScalarField& g0,
-            const volScalarField& sumAlphaGs0,
-            const volScalarField& beta,
-            const volScalarField& rho1,
-            const volScalarField& da,
-            const dimensionedScalar& e
-        ) const = 0;
+    virtual tmp<volScalarField> nu(const volScalarField& alpha1,
+                                   const volScalarField& Theta,
+                                   const dimensionedScalar& ThetaSmall,
+                                   const volScalarField& g0,
+                                   const volScalarField& sumAlphaGs0,
+                                   const volScalarField& beta,
+                                   const volScalarField& rho1,
+                                   const volScalarField& da,
+                                   const dimensionedScalar& e) const = 0;
 
 
     // Member Operators
 
-        //- Disallow default bitwise assignment
-        void operator=(const viscosityModel&) = delete;
+    //- Disallow default bitwise assignment
+    void operator=(const viscosityModel&) = delete;
 };
 
 

@@ -71,6 +71,15 @@ bool Foam::solvers::OpenPDAC::read()
     lowPressureTimestepCorrection = pimple.dict().lookupOrDefault<Switch>(
         "lowPressureTimestepCorrection", false);
 
+    tempOscillationControl_ = pimple.dict().lookupOrDefault<Switch>(
+        "temperatureOscillationControl", false);
+
+    if (tempOscillationControl_)
+    {
+        maxTempOscillation_ =
+            pimple.dict().lookupOrDefault<scalar>("maxTempOscillation", 0.1);
+    }
+
     correctTdispersed =
         pimple.dict().lookupOrDefault<Switch>("correctTdispersed", false);
 
@@ -81,6 +90,9 @@ bool Foam::solvers::OpenPDAC::read()
 
     residualRatio =
         pimple.dict().lookupOrDefault<scalar>("residualRatio", 10.0);
+
+    minOuterCorrectors =
+        pimple.dict().lookupOrDefault<label>("minOuterCorrectors", 4);
 
     nMaxEnergyCorrectors =
         pimple.dict().lookupOrDefault<label>("nMaxEnergyCorrectors", 20);
@@ -123,6 +135,12 @@ void Foam::solvers::OpenPDAC::correctCoNum()
         sumPhi /= sqrt(p_ratio);
     }
 
+    if (tempOscillationControl_ && tempOscillationFactor_ < 1.0)
+    {
+        Info << "tempOscillationFactor = " << tempOscillationFactor_ << endl;
+        sumPhi /= sqrt(tempOscillationFactor_);
+    }
+
 
     CoNum_ =
         0.5 * gMax(sumPhi / mesh.V().primitiveField()) * runTime.deltaTValue();
@@ -140,8 +158,8 @@ void Foam::solvers::OpenPDAC::correctCoNum()
     }
     else
     {
-        Info << "Courant Number mean: " << meanCoNum * p_ratio
-             << " max: " << CoNum << endl;
+        Info << "Courant Number mean: " << meanCoNum << " max: " << CoNum
+             << endl;
     }
 }
 
@@ -163,6 +181,12 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
   lowPressureTimestepCorrection(pimple.dict().lookupOrDefault<Switch>(
       "lowPressureTimestepCorrection", false)),
+
+  tempOscillationControl_(false),
+
+  maxTempOscillation_(0.1),
+
+  tempOscillationFactor_(1.0),
 
   buoyancy(mesh),
 
@@ -215,6 +239,24 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     // Read the controls
     read();
 
+    if (tempOscillationControl_)
+    {
+        const label nThermal = fluid_.thermalPhases().size();
+        if (nThermal > 0)
+        {
+            minTempMin_.setSize(nThermal);
+            maxTempMin_.setSize(nThermal);
+            sumTempMin_.setSize(nThermal);
+            pimpleTempIterCount_.setSize(nThermal);
+        }
+        else
+        {
+            Info << "temperatureOscillationControl is active, but no thermal "
+                 << "phases were found." << endl;
+            tempOscillationControl_ = false;
+        }
+    }
+
     mesh.schemes().setFluxRequired(p_rgh.name());
 
     // create ph_rgh (p_rgh for hydrostatic pressure)
@@ -261,9 +303,12 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
          << max(alphasMax).value() << endl;
 
     // Mixture viscosity
-    muMix = muC
-          * pow(1.0 - (1.0 - max(0.0, phases[continuousPhaseName])) / alphasMax,
-                -1.55);
+    volScalarField alphaS = 1.0 - max(0.0, phases[continuousPhaseName]);
+    volScalarField base =
+        1.0 - min(alphaS / (alphasMax + ROOTVSMALL), 1.0 - 1.0e-6);
+
+    muMix = muC * pow(base, -1.55);
+
     Info << "min muMix " << min(muMix).value() << " max muMix "
          << max(muMix).value() << endl;
 
@@ -335,13 +380,9 @@ void Foam::solvers::OpenPDAC::preSolve()
 {
     correctCoNum();
 
-    pimpleIter = 0;
-    forceFinalPimpleIter_ = false;
-    ratioFirstCheck = false;
-
     // Store divU from the previous mesh so that it can be
     // mapped and used in correctPhi to ensure the corrected phi
-    // has the same divergence
+    // has the same divergence.
     if (correctPhi || mesh.topoChanging())
     {
         // Construct and register divU for mapping
@@ -356,7 +397,35 @@ void Foam::solvers::OpenPDAC::preSolve()
 
     fvModels().preUpdateMesh();
 
-    mesh_.update();
+    isMeshChanging_ = mesh_.update();
+
+    if (isMeshChanging_)
+    {
+        Info << "MESH UPDATED. Disabling PIMPLE loop early exit for this "
+             << "time step." << endl;
+    }
+
+    pimpleIter = 0;
+    forceFinalPimpleIter_ = false;
+    ratioFirstCheck = false;
+
+    if (lowPressureTimestepCorrection)
+    {
+        // Initialize p_ratio to find the minimum value during PIMPLE iterations
+        p_ratio = 1.0;
+    }
+
+    if (tempOscillationControl_)
+    {
+        // Initialize temp oscillation stats
+        forAll(minTempMin_, i)
+        {
+            minTempMin_[i] = GREAT;
+            maxTempMin_[i] = -GREAT;
+            sumTempMin_[i] = 0.0;
+            pimpleTempIterCount_[i] = 0;
+        }
+    }
 }
 
 
@@ -436,6 +505,42 @@ void Foam::solvers::OpenPDAC::thermophysicalTransportCorrector()
 
 void Foam::solvers::OpenPDAC::postSolve()
 {
+    if (tempOscillationControl_)
+    {
+        // Reset for next timestep
+        tempOscillationFactor_ = 1.0;
+
+        // Calculate oscillation metric for each thermal phase and find the
+        // minimum ratio
+        forAll(fluid_.thermalPhases(), i)
+        {
+            const phaseModel& phase = fluid_.thermalPhases()[i];
+            if (pimpleTempIterCount_[i] > 1)
+            {
+                scalar T_min_min = minTempMin_[i];
+                scalar T_max_min = maxTempMin_[i];
+                scalar T_avg_min = sumTempMin_[i] / pimpleTempIterCount_[i];
+
+                if (T_avg_min > ROOTVSMALL)
+                {
+                    scalar oscillation = (T_max_min - T_min_min) / T_avg_min;
+                    Info << "Phase " << phase.name()
+                         << " minTemp oscillation: " << oscillation
+                         << " (min: " << T_min_min << ", max: " << T_max_min
+                         << ", avg: " << T_avg_min << ")" << endl;
+
+                    if (oscillation > maxTempOscillation_)
+                    {
+                        scalar ratio =
+                            max(0.01, maxTempOscillation_ / oscillation);
+                        tempOscillationFactor_ =
+                            min(tempOscillationFactor_, ratio);
+                    }
+                }
+            }
+        }
+    }
+
     divU.clear();
 
     if (mesh.topoChanged())
@@ -443,8 +548,8 @@ void Foam::solvers::OpenPDAC::postSolve()
         muMix.primitiveFieldRef() = 0.0; // Pulisce i valori vecchi
     }
 
-    volScalarField alphasMax = fluid_.alfasMax();
-
+    volScalarField alphasMax =
+        max(fluid_.alfasMax(), dimensionedScalar(dimless, 0.01));
     const word& continuousPhaseName = fluid.continuousPhaseName();
 
     volScalarField alphaS =
