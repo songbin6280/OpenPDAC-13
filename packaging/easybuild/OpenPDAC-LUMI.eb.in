@@ -1,0 +1,88 @@
+easyblock = 'Binary'
+
+name = 'OpenPDAC'
+version = '@VERSION@'
+versionsuffix = '-OpenFOAM-13'
+
+homepage = 'https://github.com/demichie/OpenPDAC-13'
+description = """OpenPDAC is a framework for Partial Differential Equation Constrained Optimization developed for OpenFOAM."""
+
+toolchain = {'name': 'cpeGNU', 'version': '24.03'}
+
+source_urls = ['https://github.com/demichie/OpenPDAC-13/archive/refs/tags']
+sources = [{
+    'download_filename': '@VERSION@.tar.gz',
+    'filename':          'OpenPDAC-13-@VERSION@.tar.gz',
+}]
+
+# FORCE source extraction (needed with the 'Binary' easyblock)
+extract_sources = True
+
+# Strip the top-level directory during extraction so 'applications'
+# is placed directly in the build root.
+unpack_options = '--strip-components=1'
+
+dependencies = [
+    ('OpenFOAM', '13', '-patch-20260212'),
+]
+
+buildininstalldir = False
+
+# Create target directories
+preinstallopts = 'mkdir -p %(installdir)s/bin %(installdir)s/lib && '
+
+# WARNING: Do NOT use single quotes inside the bash -c block below!
+install_cmd = """bash -c '
+    # The environment is automatically prepared by the OpenFOAM dependency.
+    # We just need to force the installation paths to the EasyBuild directory:
+    export FOAM_USER_APPBIN=%(installdir)s/bin
+    export FOAM_USER_LIBBIN=%(installdir)s/lib
+
+    # --- STEP 1: Compile topoGrid ---
+    echo "Starting compilation of topoGrid..."
+    if [ -d applications/utilities/topoGrid ]; then
+        cd applications/utilities/topoGrid
+
+        # wmake is available thanks to the OpenFOAM module
+        wmake
+        if [ $? -ne 0 ]; then echo "ERROR: topoGrid compilation failed"; exit 1; fi
+
+        # Return to the build root
+        cd - > /dev/null
+    else
+        echo "ERROR: Directory applications/utilities/topoGrid not found!"
+        echo "Current directory contents:"
+        ls -la
+        exit 1
+    fi
+
+    # --- STEP 2: Compile OpenPDAC ---
+    echo "Starting compilation of OpenPDAC..."
+    if [ -d applications/OpenPDAC ]; then
+        cd applications/OpenPDAC
+
+        if [ -f Allwmake ]; then
+            chmod +x Allwmake
+            ./Allwmake -j%(parallel)s
+        else
+            echo "ERROR: Allwmake not found in applications/OpenPDAC"
+            exit 1
+        fi
+    else
+        echo "ERROR: Directory applications/OpenPDAC not found!"
+        exit 1
+    fi
+'"""
+
+sanity_check_paths = {
+    'files': [],
+    'dirs': ['bin', 'lib'],
+}
+
+# Ensure OpenFOAM knows where to find these binaries when the OpenPDAC module is loaded
+modextravars = {
+    'FOAM_USER_APPBIN': '%(installdir)s/bin',
+    'FOAM_USER_LIBBIN': '%(installdir)s/lib',
+}
+
+moduleclass = 'cae'

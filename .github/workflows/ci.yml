@@ -2,10 +2,12 @@ name: Build and Test OpenPDAC-13
 
 on:
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
   push:
     tags:
-      - '[0-9]+.*'
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
 
 jobs:
   build-and-test:
@@ -15,51 +17,57 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install System Dependencies
+      - name: Install system dependencies
+        shell: bash
         run: |
+          set -euo pipefail
           sudo sh -c "wget -O - https://dl.openfoam.org/gpg.key | apt-key add -"
           sudo add-apt-repository http://dl.openfoam.org/ubuntu
           sudo apt-get update
           sudo apt-get -y install openfoam13 wget
-          
-      - name: Install Miniconda and Create Environment Manually
+
+      - name: Install Miniconda and create environment
+        shell: bash
         run: |
-          # Scarica e installa Miniconda
+          set -euo pipefail
+
           wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-          bash miniconda.sh -b -p $HOME/miniconda
-          
-          # Inizializza Conda per la shell e crea l'ambiente
-          source $HOME/miniconda/bin/activate
-          conda init
+          bash miniconda.sh -b -p "$HOME/miniconda"
+
+          source "$HOME/miniconda/bin/activate"
+          conda init bash
           conda env create -f environment.yml
 
-      - name: Compile Solver and Utilities
+      - name: Compile solver and utilities
+        shell: bash
         run: |
           bash -ic '
+            set -e
             set +m
-            
-            # Il .bashrc è stato modificato da "conda init"
-            # Quindi l''attivazione funzionerà
+
             conda activate OpenPDACconda
-            
-            # Ora carica OpenFOAM
             source /opt/openfoam13/etc/bashrc
-            
-            # Compila
+
             echo "Compiling OpenPDAC solver..."
             cd applications/OpenPDAC
             ./Allwmake
-            cd ../../applications/utilities/topoGrid
+
+            cd ../utilities/topoGrid
             wmake
           '
 
-      - name: Run the test cases
+      - name: Run test cases
+        shell: bash
+        env:
+          CI: true
         run: |
           bash -ic '
-            set +m 
+            set -e
+            set +m
+
             conda activate OpenPDACconda
             source /opt/openfoam13/etc/bashrc
-            
+
             cd run
             chmod +x ./run-all-tests.sh
             ./run-all-tests.sh

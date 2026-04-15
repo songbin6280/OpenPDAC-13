@@ -1,0 +1,86 @@
+name: Publish EasyConfig Release Asset
+
+on:
+  workflow_run:
+    workflows:
+      - Build and Test OpenPDAC-13
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  publish-easyconfig:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate release tag format
+        id: check
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REFNAME="${{ github.event.workflow_run.head_branch }}"
+
+          if echo "$REFNAME" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "is_release_tag=true" >> "$GITHUB_OUTPUT"
+            echo "version=$REFNAME" >> "$GITHUB_OUTPUT"
+            echo "asset_name=OpenPDAC-${REFNAME}-cpeGNU-24.03-OpenFOAM-13.eb" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_release_tag=false" >> "$GITHUB_OUTPUT"
+            echo "Ref '$REFNAME' is not a release tag like 1.2.0"
+          fi
+
+      - name: Stop if this is not a release tag
+        if: steps.check.outputs.is_release_tag != 'true'
+        shell: bash
+        run: |
+          echo "Skipping: workflow run is not from a release tag."
+          exit 0
+
+      - name: Checkout tested commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Generate EasyConfig from template
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+
+          TEMPLATE="packaging/easybuild/OpenPDAC-LUMI.eb.in"
+          VERSION="${{ steps.check.outputs.version }}"
+          OUTFILE="dist/${{ steps.check.outputs.asset_name }}"
+
+          if [ ! -f "$TEMPLATE" ]; then
+            echo "ERROR: template not found: $TEMPLATE"
+            exit 1
+          fi
+
+          cp "$TEMPLATE" "$OUTFILE"
+          sed -i "s/@VERSION@/${VERSION}/g" "$OUTFILE"
+
+          echo "Generated EasyConfig:"
+          sed -n '1,200p' "$OUTFILE"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyconfig-${{ steps.check.outputs.version }}
+          path: dist/*.eb
+          if-no-files-found: error
+
+      - name: Create or update GitHub Release and upload asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.check.outputs.version }}
+          name: OpenPDAC ${{ steps.check.outputs.version }}
+          generate_release_notes: true
+          files: |
+            dist/${{ steps.check.outputs.asset_name }}
